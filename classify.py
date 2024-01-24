@@ -1,22 +1,10 @@
-import copy
+import argparse
 import csv
-import json
-import math
-import os
-import pathlib
-import time
 import psycopg2
-import requests
-from requests.adapters import HTTPAdapter
-from requests.auth import HTTPBasicAuth
-from urllib3.util.retry import Retry
-
-import numpy as np
 import matplotlib.pyplot as plt
 import rasterio
 from shapely.wkt import loads
 from rasterio.mask import mask
-import cv2
 
 class PGConn:
     def __init__(self, host, port, dbname, user=None, passwd=None):
@@ -58,6 +46,12 @@ pgconn_obj = PGConn(
     
 pgconn=pgconn_obj.connection()
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--start_gid", type=int, required=True)
+parser.add_argument("-e", "--end_gid", type=int, required=True)
+
+args = parser.parse_args()
+
 sql_query = f"""
 select
     gid,
@@ -65,7 +59,9 @@ select
 from
     pilot.dagdagad_farmplots_dedup
 where
-    gid = 165
+    gid <= {args.end_gid}
+and
+    gid >= {args.start_gid}
 """
 
 with pgconn.cursor() as curs:
@@ -91,8 +87,6 @@ def clip_raster_with_multipolygon(raster_path, multipolygon, output_path):
         with rasterio.open(output_path, "w", **out_meta) as dest:
             dest.write(out_image)
 
-classifications = []
-
 for farm in poly_fetch_all:
     months = ['01','02','03','04','05','06',
               '07','08','09','10','11','12']
@@ -113,17 +107,16 @@ for farm in poly_fetch_all:
             plt.close()
             answer = input()
             if answer == 'y':
-                classifications.append((farm[0], months_names[i], 1))
+                csv_file = 'classify_output.csv'
+                with open(csv_file, 'a') as file:
+                    writer = csv.writer(file)
+                    writer.writerow((farm[0], months_names[i], 1))
                 break
             if answer == 'n':
-                classifications.append((farm[0], months_names[i], 0))
+                csv_file = 'classify_output.csv'
+                with open(csv_file, 'a') as file:
+                    writer = csv.writer(file)
+                    writer.writerow((farm[0], months_names[i], 0))
                 break
             if answer == 'r':
                 continue
-
-csv_file = 'classify_output.csv'
-with open(csv_file, 'w') as file:
-    writer = csv.writer(file)
-    writer.writerow(['gid', 'month', 'crop_presence'])
-    for row in classifications:
-        writer.writerow(row)
