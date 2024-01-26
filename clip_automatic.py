@@ -108,7 +108,7 @@ for month in all_months:
     print(months[month])
     months_num = ['01', '02', '03', '04', '05', '06',
                 '07', '08', '09', '10', '11', '12']
-    table = f'pilot.{months[month]}_cropping_pattern_dagdagad'
+    table = f'pilot.cropping_pattern_dagdagad'
 
     results = []
     for gid_poly in poly_fetch_all:
@@ -124,7 +124,8 @@ for month in all_months:
     drop table if exists {table};
     create table {table} (
         gid integer,
-        geom geometry(Multipolygon, 32643),
+        month text,
+        year integer,
         red numeric,
         green numeric,
         blue numeric,
@@ -139,6 +140,8 @@ for month in all_months:
         sql_query = f"""
         insert into {table} (
             gid,
+            month,
+            year,
             red,
             green,
             blue,
@@ -146,6 +149,8 @@ for month in all_months:
         )
         values (
             {result[0]},
+            '{months[month]}',
+            2023,
             {result[1]},
             {result[2]},
             {result[3]},
@@ -155,17 +160,17 @@ for month in all_months:
         with pgconn.cursor() as curs:
             curs.execute(sql_query)
 
-    sql_query = f"""
-    update
-        {table} as c
-    set
-        geom = f.geom
-    from
-        pilot.dagdagad_farmplots_dedup as f
-    where
-        c.gid = f.gid
-    """
-    with pgconn.cursor() as curs:
-        curs.execute(sql_query)
+    # sql_query = f"""
+    # update
+    #     {table} as c
+    # set
+    #     geom = f.geom
+    # from
+    #     pilot.dagdagad_farmplots_dedup as f
+    # where
+    #     c.gid = f.gid
+    # """
+    # with pgconn.cursor() as curs:
+    #     curs.execute(sql_query)
 
     pgconn.commit()
