@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import rasterio
 from shapely.wkt import loads
 from rasterio.mask import mask
+import pandas as pd
 
 class PGConn:
     def __init__(self, host, port, dbname, user=None, passwd=None):
@@ -87,36 +88,37 @@ def clip_raster_with_multipolygon(raster_path, multipolygon, output_path):
         with rasterio.open(output_path, "w", **out_meta) as dest:
             dest.write(out_image)
 
+df = pd.DataFrame(columns=['gid', 'month', 'year', 'crop_presence'])
+
 for farm in poly_fetch_all:
+    years = [2022,2023]
     months = ['01','02','03','04','05','06',
               '07','08','09','10','11','12']
     months_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
                     'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
-    for i,month in enumerate(months):
-        raster_path = f'data/global_monthly_2023_{month}_mosaic/1465-1146_quad.tif'
-        multipolygon = loads(farm[1])
-        output_path = 'temp_classify.tif'
-        clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
-        while True:
-            plt.ion()
-            img = plt.imread('temp_classify.tif')
-            plt.title(f'gid: {farm[0]}, month: {months_names[i]}')
-            plt.imshow(img)
-            plt.draw()
-            plt.pause(1)
-            plt.close()
-            answer = input()
-            if answer == 'y':
-                csv_file = 'classify_output.csv'
-                with open(csv_file, 'a') as file:
-                    writer = csv.writer(file)
-                    writer.writerow((farm[0], months_names[i], 1))
-                break
-            if answer == 'n':
-                csv_file = 'classify_output.csv'
-                with open(csv_file, 'a') as file:
-                    writer = csv.writer(file)
-                    writer.writerow((farm[0], months_names[i], 0))
-                break
-            if answer == 'r':
-                continue
+    for year in years:
+        for i,month in enumerate(months):
+            raster_path = f'data/global_monthly_{year}_{month}_mosaic/1465-1146_quad.tif'
+            multipolygon = loads(farm[1])
+            output_path = 'temp_classify.tif'
+            clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
+            while True:
+                plt.ion()
+                img = plt.imread('temp_classify.tif')
+                plt.title(f'gid: {farm[0]}, month: {months_names[i]}, {year}')
+                plt.imshow(img)
+                plt.draw()
+                plt.pause(1)
+                plt.close()
+                answer = input()
+                if answer == 'y':
+                    df.loc[len(df)] = [farm[0], months_names[i], year, 1]
+                    break
+                if answer == 'n':
+                    df.loc[len(df)] = [farm[0], months_names[i], year, 0]
+                    break
+                if answer == 'r':
+                    continue
+
+print("Writing results")
+df.to_csv('classify_output.csv', index=False)
