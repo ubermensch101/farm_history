@@ -10,6 +10,9 @@ from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from urllib3.util.retry import Retry
 
+from config.config import Config
+from utils.postgres_utils import PGConn
+
 PL_API_KEY = 'PLAK721cf7576b5f4835bcd0f2dfe9a7a395'
 ORDERS_API_URL = 'https://api.planet.com/compute/ops/orders/v2'
 BASEMAP_API_URL = 'https://api.planet.com/basemaps/v1/mosaics'
@@ -22,53 +25,8 @@ AUTH = HTTPBasicAuth(PL_API_KEY, '')
 retries = Retry(total=10, backoff_factor=1, status_forcelist=[429])
 SESSION.mount('https://', HTTPAdapter(max_retries=retries))
 
-class PGConn:
-    def __init__(self, host, port, dbname, user=None, passwd=None):
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        if user is not None:
-            self.user = user
-        else:
-            self.user = ""
-        if passwd is not None:
-            self.passwd = passwd
-        else:
-            self.passwd = ""
-        self.conn = None
-
-    def connection(self):
-        """Return connection to PostgreSQL.  It does not need to be closed
-        explicitly.  See the destructor definition below.
-
-        """
-        if self.conn is None:
-            conn = psycopg2.connect(dbname=self.dbname,
-                                    host=self.host,
-                                    port=str(self.port),
-                                    user=self.user,
-                                    password=self.passwd)
-            self.conn = conn
-            
-        return self.conn
-
-    def __del__(self):
-        """No need to explicitly close the connection.  It will be closed when
-        the PGConn object is garbage collected by Python runtime.
-
-        """
-        print(self.conn)
-        self.conn.close()
-        self.conn = None
-
-pgconn_obj = PGConn(
-    "localhost",
-    5432,
-    "dolr",
-    "sameer",
-    "swimgood"
-)
-    
+config = Config()
+pgconn_obj = PGConn(config)
 pgconn=pgconn_obj.connection()
 
 # pilot.dagdagad_farmplots_dedup can be replaced with any table

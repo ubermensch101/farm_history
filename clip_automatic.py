@@ -16,92 +16,19 @@ from shapely.wkt import loads
 from rasterio.mask import mask
 import cv2
 
-class PGConn:
-    def __init__(self, host, port, dbname, user=None, passwd=None):
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        if user is not None:
-            self.user = user
-        else:
-            self.user = ""
-        if passwd is not None:
-            self.passwd = passwd
-        else:
-            self.passwd = ""
-        self.conn = None
-
-    def connection(self):
-        """Return connection to PostgreSQL.  It does not need to be closed
-        explicitly.  See the destructor definition below.
-
-        """
-        if self.conn is None:
-            conn = psycopg2.connect(dbname=self.dbname,
-                                    host=self.host,
-                                    port=str(self.port),
-                                    user=self.user,
-                                    password=self.passwd)
-            self.conn = conn
-            
-        return self.conn
-    
-    def __del__(self):
-        """No need to explicitly close the connection.  It will be closed when
-        the PGConn object is garbage collected by Python runtime.
-
-        """
-        print(self.conn)
-        self.conn.close()
-        self.conn = None
-
-def clip_raster_with_multipolygon(raster_path, multipolygon, output_path):
-    # Open the raster file
-    with rasterio.open(raster_path) as src:
-        # Clip the raster with the multipolygon
-        out_image, out_transform = mask(src, [multipolygon], crop=True)
-        
-        # Copy the metadata
-        out_meta = src.meta.copy()
-
-        # Update the metadata to match the clipped raster
-        out_meta.update({"driver": "GTiff",
-                         "height": out_image.shape[1],
-                         "width": out_image.shape[2],
-                         "transform": out_transform})
-
-        # Write the clipped raster to a new file
-        with rasterio.open(output_path, "w", **out_meta) as dest:
-            dest.write(out_image)
-
-def calculate_average_color(tif_path):
-    with rasterio.open(tif_path) as src:
-        data = src.read()
-
-        if data.shape[0] >= 4:
-            red_avg = np.mean(data[0])
-            green_avg = np.mean(data[1])
-            blue_avg = np.mean(data[2])
-            nir_avg = np.mean(data[3])
-            return (red_avg, green_avg, blue_avg, nir_avg)
-        else:
-            raise ValueError("Need 4 bands corresponding to rgb and near-IR")
+from config.config import Config
+from utils.postgres_utils import PGConn
+from utils.raster_utils import *
 
 if __name__=='__main__':
-    pgconn_obj = PGConn(
-        "localhost",
-        5432,
-        "dolr",
-        "sameer",
-        "swimgood"
-    )
-        
+    config = Config()
+    pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
 
     sql_query = f"""
     select
         gid,
-        st_astext(st_transform(geom, 3857)) as geom_text
+        st_astext(st_transform(geom, 3857))
     from
         pilot.dagdagad_farmplots_dedup
     """
@@ -115,11 +42,7 @@ if __name__=='__main__':
     months_num = ['01', '02', '03', '04', '05', '06',
                   '07', '08', '09', '10', '11', '12']
 
-    fetch_months = []
-    months = [int(item) for item in np.linspace(0,11,num=12)]
-    for i in months:
-        fetch_months.append((2022,i))
-        fetch_months.append((2023,i))
+    fetch_months = config.setup_details["months"]["all_months"]
 
     results = []
     for month in fetch_months:
