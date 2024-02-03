@@ -7,7 +7,7 @@ INTERACTIVE_MODE = False
 
 class Config:
     def __init__(self, gcp_path = ""):
-        modules = ["psql","months"]
+        modules = ["psql","months","tables"]
         self.setup_details = self.get_details(modules)
         
     def get_details(self, modules):

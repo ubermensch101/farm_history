@@ -1,0 +1,10 @@
+{
+    "villages": [
+        {
+            "schema": "pilot", 
+            "table": "bid_558923",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid"
+        }
+    ]
+}

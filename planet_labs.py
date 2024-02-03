@@ -33,11 +33,11 @@ pgconn=pgconn_obj.connection()
 # containing geometries of farmplots
 sql_query = f"""
     select
-        st_astext(st_transform(geom, 4674)) as geom_text
+        st_astext(st_transform(wkb_geometry, 4674)) as geom_text
     from
-        pilot.dagdagad_farmplots_dedup
+        pilot.bid_558923
     where
-        gid = 1
+        ogc_fid = 1
     ;
 """
 
@@ -108,7 +108,7 @@ def download_results(results, overwrite=False):
     print('{} items to download'.format(len(results_urls)))
     
     for url, name in zip(results_urls, results_names):
-        path = pathlib.Path(os.path.join('data_test', name))
+        path = pathlib.Path(os.path.join('data_bid', name))
         
         if overwrite or not path.exists():
             print('downloading {} to {}'.format(name, path))
@@ -116,8 +116,8 @@ def download_results(results, overwrite=False):
             path.parent.mkdir(parents=True, exist_ok=True)
             open(path, 'wb').write(r.content)
             hash = name.strip().split('/')[0]
-            os.system(f"cp -r {os.path.join('data_test', hash)}/global_monthly_* data_test")
-            os.system(f"rm -rf {os.path.join('data_test', hash)}")
+            os.system(f"cp -r {os.path.join('data_bid', hash)}/global_monthly_* data_bid")
+            os.system(f"rm -rf {os.path.join('data_bid', hash)}")
         else:
             print('{} already exists, skipping {}'.format(path, name))
 
@@ -127,7 +127,7 @@ for month in range(1, 13):
         month = "0" + str(month)
     else:
         month = str(month)
-    mosaic_name = f"global_monthly_2022_{month}_mosaic"
+    mosaic_name = f"global_monthly_2023_{month}_mosaic"
     order_url = place_monthly_order(mosaic_name, points)
     order_urls.append(order_url)
 
