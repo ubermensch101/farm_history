@@ -27,11 +27,14 @@ def calculate_average_color(tif_path):
         data = src.read()
 
         if data.shape[0] >= 4:
-            red_avg = np.mean(data[0])
-            green_avg = np.mean(data[1])
-            blue_avg = np.mean(data[2])
-            nir_avg = np.mean(data[3])
-            return (red_avg, green_avg, blue_avg, nir_avg)
+            band_averages = []
+            for i in range(4):
+                pixel_array = []
+                for row in data[i]:
+                    pixel_array += [item for item in row if item != 0]
+                band_averages.append(np.mean(pixel_array))
+
+            return band_averages # red, green, blue, nir
         else:
             raise ValueError("Need 4 bands corresponding to rgb and near-IR")
 
