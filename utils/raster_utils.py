@@ -26,14 +26,10 @@ def calculate_average_color(tif_path):
     with rasterio.open(tif_path) as src:
         data = src.read()
 
-        if data.shape[0] >= 4:
+        if data.shape[0] == 4:
             band_averages = []
             for i in range(4):
-                pixel_array = []
-                for row in data[i]:
-                    pixel_array += [item for item in row if item != 0]
-                band_averages.append(np.mean(pixel_array))
-
+                band_averages.append(np.mean(data[i]))
             return band_averages # red, green, blue, nir
         else:
             raise ValueError("Need 4 bands corresponding to rgb and near-IR")

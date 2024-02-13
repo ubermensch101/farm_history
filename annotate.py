@@ -17,12 +17,7 @@ if __name__=='__main__':
     parser.add_argument("-e", "--end_key", type=int, required=True)
     args = parser.parse_args()
 
-    table = {
-        "schema": "pilot", 
-        "table": "bid_558923",
-        "geom_col": "wkb_geometry",
-        "key": "ogc_fid"
-    }
+    table = config.setup_details["tables"]["villages"][0]
 
     months_data = ['01','02','03','04','05','06',
                    '07','08','09','10','11','12']
@@ -58,7 +53,7 @@ if __name__=='__main__':
     for farm in poly_fetch_all:
         row = [farm[0]]
         for month in annotate_months:
-            raster_path = f'data_bid/global_monthly_{month[0]}_{months_data[month[1]]}_mosaic/1453-1133_quad.tif'
+            raster_path = f"{table['data_dir']}/global_monthly_{month[0]}_{months_data[month[1]]}_mosaic/{table['raster']}"
             multipolygon = loads(farm[1])
             output_path = 'temp_classify.tif'
             clip_raster_with_multipolygon(raster_path, multipolygon, output_path)

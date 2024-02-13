@@ -25,12 +25,18 @@ if __name__=='__main__':
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
 
-    table = {
-        "schema": "pilot", 
-        "table": "bid_558923",
-        "geom_col": "wkb_geometry",
-        "key": "ogc_fid"
-    }
+    table = config.setup_details["tables"]["villages"][0]
+
+    if not check_column_exists(pgconn_obj, table["schema"], table["table"], "crop_cycle_22_23"):
+        sql_query = f"""
+        alter table
+            {table["schema"]}.{table["table"]}
+        add column
+            crop_cycle_22_23 text        
+        """
+        with pgconn.cursor() as curs:
+            curs.execute(sql_query)
+
     months_data = ['01','02','03','04','05','06',
                    '07','08','09','10','11','12']
     months_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
