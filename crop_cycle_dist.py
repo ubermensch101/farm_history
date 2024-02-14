@@ -47,16 +47,20 @@ if __name__=='__main__':
         columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
 
     cycles = [
-        [0,0,1,1,1,1, 0,0,0,0,0,0], # short kharif
-        [0,0,1,1,1,1, 1,1,1,1,0,0], # long kharif
-        [0,0,1,1,1,0, 0,1,1,1,1,0], # kharif and rabi
-        [1,1,1,1,1,1, 1,1,1,1,1,1]  # perennial
+        [0,0,0.5,1,1,1,     0,0,0,0,0,0], # short kharif
+        [0,0,0.5,1,1,1,     1,1,1,1,0,0], # long kharif
+        [0,0,0.5,1,1,1,     1,1,0,0,0,0], # long kharif
+        [0,0,0.5,1,1,0,     0.5,1,1,1,0,0], # kharif and rabi
+        [0,0,0.5,1,1,1,     0,0.5,1,1,1,0], # kharif and rabi
+        [1,1,1,1,1,1,       1,1,1,1,1,1]  # perennial
     ]
     cycles_map = {
         0:"short_kharif",
         1:"long_kharif",
-        2:"kharif_and_rabi",
-        3:"perennial"
+        2:"long_kharif",
+        3:"kharif_and_rabi",
+        4:"kharif_and_rabi",
+        5:"perennial"
     }
     cycles = [np.array(item) for item in cycles]
     sql_query = f"""
