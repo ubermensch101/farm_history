@@ -69,8 +69,13 @@ if __name__=='__main__':
         # of red and nir averages
         nvdi.append((bands[3] - bands[0])/(bands[3] + bands[0]))
     
+    columns = ""
+    for month in study_months:
+        columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
+
     sql_query = f"""
     select
+        {columns}
         crop_cycle_22_23
     from
         {table["schema"]}.{table["table"]}
@@ -79,15 +84,15 @@ if __name__=='__main__':
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
-        crop_cycle = curs.fetchone()[0]
+        record = curs.fetchall()[0]
     
     fig, axes = plt.subplots(nrows=4, ncols=3, figsize=(12,8))
     axes = axes.flatten()
 
-    for ax, image, month in zip(axes, images, study_months):
+    for i, (ax, image, month) in enumerate(zip(axes, images, study_months)):
         ax.imshow(image)
-        ax.set_title(f'{months_names[month[1]]}-{month[0]}')
+        ax.set_title(f'{months_names[month[1]]}-{month[0]} prob: {round(record[i], 3)}')
     
-    plt.suptitle(f"{table['key']}: {args.key}; cropping pattern: {crop_cycle}", fontsize=20)
+    plt.suptitle(f"{table['key']}: {args.key}; cropping pattern: {record[-1]}", fontsize=20)
     plt.tight_layout()
     plt.show()
