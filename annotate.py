@@ -42,9 +42,7 @@ if __name__=='__main__':
     and
         {table["key"]} >= {args.start_key}
     and
-        description = 'field'
-    and
-        st_area({table["geom_col"]}::geography) > 1000
+        {table["filter"]}
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)

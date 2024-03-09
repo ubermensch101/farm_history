@@ -1,12 +1,40 @@
 {
     "villages": [
         {
+            "schema": "pilot",
+            "table": "dagdagad_farmplots_dedup",
+            "geom_col": "geom",
+            "key": "gid",
+            "data_dir": "data_dagdagad",
+            "raster": "1465-1146_quad.tif",
+            "filter": "true"
+        },
+        {
+            "schema": "pilot",
+            "table": "dagdagad_farmplots_dedup",
+            "geom_col": "buffered_geom",
+            "key": "key",
+            "data_dir": "data_dagdagad",
+            "raster": "",
+            "filter": "true"
+        },
+        {
+            "schema": "pilot", 
+            "table": "bid_559692",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "data_dir": "data_559692",
+            "raster": "1455-1132_quad.tif",
+            "filter": "where description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        },
+        {
             "schema": "pilot", 
             "table": "bid_559207",
             "geom_col": "wkb_geometry",
             "key": "ogc_fid",
             "data_dir": "data_559207",
-            "raster": "1455-1135_quad.tif"
+            "raster": "1455-1135_quad.tif",
+            "filter": "where description = 'field' and st_area(wkb_geometry::geography) > 1000"
         },
         {
             "schema": "pilot", 
@@ -14,14 +42,16 @@
             "geom_col": "wkb_geometry",
             "key": "ogc_fid",
             "data_dir": "data_558923",
-            "raster": ""
+            "raster": "1453-1133_quad.tif",
+            "filter": "where description = 'field' and st_area(wkb_geometry::geography) > 1000"
         },
         {
             "schema": "pilot", 
             "table": "bid_559071",
             "geom_col": "wkb_geometry",
             "key": "ogc_fid",
-            "data_dir": "data_bid"
+            "data_dir": "data_bid",
+            "filter": "where description = 'field' and st_area(wkb_geometry::geography) > 1000"
         }
     ]
 }

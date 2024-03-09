@@ -33,8 +33,8 @@ if __name__=='__main__':
     table = config.setup_details["tables"]["villages"][0]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--key", type=int, required=True,
-                        help="Provide the unique key identifying the farmplot")
+    parser.add_argument("-s", "--start_key", type=int, required=True)
+    parser.add_argument("-e", "--end_key", type=int, required=True)
     args = parser.parse_args()
 
     sql_query = f"""
@@ -43,19 +43,25 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
+        {table["key"]} >= {args.start_key}
+    and
+        {table["key"]} <= {args.end_key}
+    and
         crop_cycle_22_23 is not null
-    order by
-        random()
-    limit 200    
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
         keys = [item[0] for item in curs.fetchall()]
-    
-    print(keys)
 
     df = pd.DataFrame(columns=[table["key"], "model_output", "actual_pattern"])
-    
+
+    crop_cycle_map = {
+        'sk': "short_kharif",
+        'lk': "long_kharif",
+        'kr': "kharif_and_rabi",
+        'p': "perennial"
+    }
+
     for key in keys:
         sql_query = f"""
         select
@@ -85,12 +91,15 @@ if __name__=='__main__':
             clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
             images.append(np.array(Image.open(output_path)))
             bands = calculate_average_color(output_path)
-            # Will maybe have to change this to average of nvdi instead of nvdi
-            # of red and nir averages
             nvdi.append((bands[3] - bands[0])/(bands[3] + bands[0]))
         
+        columns = ""
+        for month in study_months:
+            columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
+
         sql_query = f"""
         select
+            {columns}
             crop_cycle_22_23
         from
             {table["schema"]}.{table["table"]}
@@ -99,21 +108,28 @@ if __name__=='__main__':
         """
         with pgconn.cursor() as curs:
             curs.execute(sql_query)
-            crop_cycle = curs.fetchone()[0]
-        
-        fig, axes = plt.subplots(nrows=4, ncols=3, figsize=(12,8))
-        axes = axes.flatten()
+            record = curs.fetchall()[0]
 
-        for ax, image, month in zip(axes, images, study_months):
-            ax.imshow(image)
-            ax.set_title(f'{months_names[month[1]]}-{month[0]}')
-        
-        plt.suptitle(f"{table['key']}: {key}; cropping pattern: {crop_cycle}", fontsize=20)
-        plt.tight_layout()
-        plt.savefig(f"validate_crop_cycle/{key}_plot.png")
-        plt.close()
+        actual_pattern = ""
+        while True:
+            fig, axes = plt.subplots(nrows=4, ncols=3, figsize=(12,8))
+            axes = axes.flatten()
 
-        df.loc[len(df)] = (key, crop_cycle, None)
+            for i, (ax, image, month) in enumerate(zip(axes, images, study_months)):
+                ax.imshow(image)
+                ax.set_title(f'{months_names[month[1]]}-{month[0]} prob: {round(record[i], 3)}')
+            
+            plt.suptitle(f"{table['key']}: {key}; cropping pattern: {record[-1]}", fontsize=20)
+            plt.tight_layout()
+            plt.show()
+            answer = input()
+            try:
+                actual_pattern = crop_cycle_map[answer]
+            except KeyError:
+                print("Enter valid input")
+                continue
+            break
 
-    df = df.sort_values(by=table["key"], ascending=True)
-    df.to_csv("validate_crop_cycle/validation.csv")
+        df.loc[len(df)] = (key, record[-1], actual_pattern)
+
+    df = df.to_csv('validation_report.csv', index=False, mode='a', header=False)

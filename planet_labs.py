@@ -33,7 +33,7 @@ table = config.setup_details["tables"]["villages"][0]
 
 sql_query = f"""
 select
-    st_astext(st_transform(wkb_geometry, 4674)) as geom_text
+    st_astext(st_transform({table["geom_col"]}, 4674)) as geom_text
 from
     {table["schema"]}.{table["table"]}
 limit
