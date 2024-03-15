@@ -83,10 +83,8 @@ if __name__=='__main__':
         st_astext(st_transform({table["geom_col"]}, 3857))
     from
         {table["schema"]}.{table["table"]}
-    where
-        description = 'field'
-    and
-        st_area({table["geom_col"]}::geography) > 1000
+    where    
+        {table["filter"]}
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)

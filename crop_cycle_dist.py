@@ -69,9 +69,7 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
-        description = 'field'
-    and
-        st_area({table["geom_col"]}::geography) > 1000
+        {table["filter"]}
     order by
         {table["key"]}
     """

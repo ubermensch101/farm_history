@@ -31,48 +31,18 @@ pgconn=pgconn_obj.connection()
 
 table = config.setup_details["tables"]["villages"][0]
 
-sql_query = f"""
-select
-    st_astext(st_transform(wkb_geometry, 4674)) as geom_text
-from
-    {table["schema"]}.{table["table"]}
-limit
-    1
-;
-"""
-
-with pgconn.cursor() as curs:
-    curs.execute(sql_query)
-    poly_fetch = curs.fetchone()[0]
-
-poly_split = poly_fetch.split('(')
-poly_coords = poly_split[3]
-poly_coords = poly_coords.split(')')[0]
-poly_point_coords = poly_coords.split(',')
-
-points = []
-for pt_coords in poly_point_coords:
-    pt_split = pt_coords.split(' ')
-    lat = float(pt_split[0])
-    long = float(pt_split[1])
-    points.append([lat, long])
-print(points)
-
 pgconn_obj.__del__()
 
-def place_monthly_order(mosaic_name, points):
+def place_monthly_order(mosaic_name):
     order_params = {
         "name": "Basemap order with geometry",
         "source_type": "basemaps",
         "products": [
             {
                 "mosaic_name": mosaic_name,
-                "geometry":{
-                "type": "Polygon",
-                "coordinates":[
-                    points
+                "quad_ids": [
+                    "1464-1145"
                 ]
-                }
             }
         ]
     }
@@ -116,25 +86,31 @@ def download_results(results, overwrite=False):
             path.parent.mkdir(parents=True, exist_ok=True)
             open(path, 'wb').write(r.content)
             hash = name.strip().split('/')[0]
-            #os.system(f"cp -r {os.path.join(table['data_dir'], hash)}/global_monthly_* {table['data_dir']}")
-            os.system(f"cp -r {os.path.join(table['data_dir'], hash)}/ps_partner_monthly_* {table['data_dir']}")
+            os.system(f"cp -r {os.path.join(table['data_dir'], hash)}/global_monthly_* {table['data_dir']}")
             os.system(f"rm -rf {os.path.join(table['data_dir'], hash)}")
         else:
             print('{} already exists, skipping {}'.format(path, name))
 
+tile_months = [
+    '2022_05',
+    '2022_06',
+    '2022_07',
+    '2022_08',
+    '2022_09',
+    '2022_10',
+    '2022_11',
+    '2022_12',
+    '2023_01',
+    '2023_02',
+    '2023_03',
+    '2023_04'
+]
+
 order_urls = []
-for month in range(1, 13):
-    if month < 10:
-        month = "0" + str(month)
-    else:
-        month = str(month)
-    #mosaic_name = f"global_monthly_2022_{month}_mosaic"
-    mosaic_name = f"ps_partner_monthly_sen2_normalized_analytic_2023_{month}_mosaic"
-    order_url = place_monthly_order(mosaic_name, points)
+for month in tile_months:
+    mosaic_name = f"global_monthly_{month}_mosaic"
+    order_url = place_monthly_order(mosaic_name)
     order_urls.append(order_url)
-    # mosaic_name = f"global_monthly_2023_{month}_mosaic"
-    # order_url = place_monthly_order(mosaic_name, points)
-    # order_urls.append(order_url)
 
 for order_url in order_urls:
     poll_for_success(order_url)
