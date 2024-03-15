@@ -1,12 +1,13 @@
 {
     "villages": [
         {
-            "schema": "pilot", 
-            "table": "bid_559207",
+            "schema": "farm_his", 
+            "table": "bid_558923",
             "geom_col": "wkb_geometry",
             "key": "ogc_fid",
-            "data_dir": "data_559207",
-            "raster": "1455-1135_quad.tif"
+            "data_dir": "data_558923",
+            "raster": "1453-1133_quad.tif" 
+        
         },
         {
             "schema": "pilot", 
