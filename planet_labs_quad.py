@@ -31,48 +31,18 @@ pgconn=pgconn_obj.connection()
 
 table = config.setup_details["tables"]["villages"][0]
 
-sql_query = f"""
-select
-    st_astext(st_transform({table["geom_col"]}, 4674)) as geom_text
-from
-    {table["schema"]}.{table["table"]}
-limit
-    1
-;
-"""
-
-with pgconn.cursor() as curs:
-    curs.execute(sql_query)
-    poly_fetch = curs.fetchone()[0]
-
-poly_split = poly_fetch.split('(')
-poly_coords = poly_split[3]
-poly_coords = poly_coords.split(')')[0]
-poly_point_coords = poly_coords.split(',')
-
-points = []
-for pt_coords in poly_point_coords:
-    pt_split = pt_coords.split(' ')
-    lat = float(pt_split[0])
-    long = float(pt_split[1])
-    points.append([lat, long])
-print(points)
-
 pgconn_obj.__del__()
 
-def place_monthly_order(mosaic_name, points):
+def place_monthly_order(mosaic_name):
     order_params = {
         "name": "Basemap order with geometry",
         "source_type": "basemaps",
         "products": [
             {
                 "mosaic_name": mosaic_name,
-                "geometry":{
-                "type": "Polygon",
-                "coordinates":[
-                    points
+                "quad_ids": [
+                    "1464-1145"
                 ]
-                }
             }
         ]
     }
@@ -139,7 +109,7 @@ tile_months = [
 order_urls = []
 for month in tile_months:
     mosaic_name = f"global_monthly_{month}_mosaic"
-    order_url = place_monthly_order(mosaic_name, points)
+    order_url = place_monthly_order(mosaic_name)
     order_urls.append(order_url)
 
 for order_url in order_urls:
