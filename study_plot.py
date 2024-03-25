@@ -44,11 +44,16 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
-        {table["key"]} = {args.key}
+        {table['filter']}
+    order by
+        random()
+    limit
+        1
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
         poly = curs.fetchall()[0]
+        key = poly[0]
 
     months_data = ['01','02','03','04','05','06',
                 '07','08','09','10','11','12']
@@ -59,10 +64,9 @@ if __name__=='__main__':
     nvdi = []
     images = []
     for month in study_months:
-        raster_path = f"{table['data_dir']}/global_monthly_{month[0]}_{months_data[month[1]]}_mosaic/{table['raster']}"
         output_path = f'temp/{months_names[month[1]]}_{month[0]}_clipped.tif'
         multipolygon = loads(poly[1])
-        clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
+        super_clip('quads', month[0], months_data[month[1]], multipolygon, output_path)
         images.append(np.array(Image.open(output_path)))
         bands = calculate_average_color(output_path)
         # Will maybe have to change this to average of nvdi instead of nvdi
@@ -80,7 +84,7 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
-        {table["key"]} = {args.key}
+        {table["key"]} = {key}
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
@@ -93,6 +97,6 @@ if __name__=='__main__':
         ax.imshow(image)
         ax.set_title(f'{months_names[month[1]]}-{month[0]} prob: {round(record[i], 3)}')
     
-    plt.suptitle(f"{table['key']}: {args.key}; cropping pattern: {record[-1]}", fontsize=20)
+    plt.suptitle(f"{table['key']}: {key}; cropping pattern: {record[-1]}", fontsize=20)
     plt.tight_layout()
     plt.show()

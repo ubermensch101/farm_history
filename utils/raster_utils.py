@@ -1,6 +1,8 @@
 import numpy as np
+import os
 import rasterio
 from rasterio.mask import mask
+from shapely.geometry import shape
 from PIL import Image, ImageDraw
 
 def clip_raster_with_multipolygon(raster_path, multipolygon, output_path):
@@ -42,3 +44,28 @@ def highlight_farm(raster_path, polygon):
     draw = ImageDraw.Draw(img)
     draw.polygon(pixel_poly, outline='red')
     img.save('temp_classify.tif')
+
+def super_clip(directory, year, month, polygon, output_path):
+    available_quads = os.listdir('quads')
+    for quad in available_quads:
+        month_path = os.path.join('quads', quad, f'global_monthly_{year}_{month}_mosaic')
+        files = os.listdir(month_path)
+        for file in files:
+            if file.endswith('quad.tif'):
+                with rasterio.open(os.path.join(month_path, file)) as src:
+                    raster_bbox = src.bounds
+                    raster_polygon = shape({
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [raster_bbox.left, raster_bbox.bottom],
+                                [raster_bbox.right, raster_bbox.bottom],
+                                [raster_bbox.right, raster_bbox.top],
+                                [raster_bbox.left, raster_bbox.top],
+                                [raster_bbox.left, raster_bbox.bottom]
+                            ]
+                        ]
+                    })
+                    if raster_polygon.intersects(polygon):
+                        raster_path = os.path.join(month_path, file)
+                        return clip_raster_with_multipolygon(raster_path, polygon, output_path)

@@ -34,7 +34,7 @@ if __name__=='__main__':
     annotations = []
     with open('annotations.csv') as file:
         for line in file.readlines():
-            annotations.append([int(item) for item in line.strip().split(',')])
+            annotations.append([int(float(item)) for item in line.strip().split(',')])
 
     # Gathering data for training the model
     X = []

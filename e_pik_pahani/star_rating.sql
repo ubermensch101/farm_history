@@ -8,9 +8,21 @@ as
     from
         public.amravati_pahani;
 
--- Filter 1: Each tuple (khate number, full_name, area) must belong to only one point
-delete from
+-- Adding the rating column
+alter table
     public.filtered_amravati_pahani
+add column
+    rating integer;
+update
+    public.filtered_amravati_pahani
+set
+    rating = 5;
+
+-- Filter 1: Each tuple (khate number, full_name, area) must belong to only one point
+update
+    public.filtered_amravati_pahani
+set
+    rating = rating - 1
 where
     (
         khate_number,
@@ -34,8 +46,10 @@ in
     );
 
 -- Filter 2A: Mishra peek entries must have multiple crops associated with them
-delete from
+update
     public.filtered_amravati_pahani
+set
+    rating = rating - 1
 where
     (
         khate_number,
@@ -62,8 +76,10 @@ in
     );
 
 -- Filter 2B: Nirbed peek entries must have only one crop associated with them
-delete from
+update
     public.filtered_amravati_pahani
+set
+    rating = rating - 1
 where
     (
         khate_number,

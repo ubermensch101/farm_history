@@ -41,7 +41,7 @@ def place_monthly_order(mosaic_name):
             {
                 "mosaic_name": mosaic_name,
                 "quad_ids": [
-                    "1464-1145"
+                    "1465-1146"
                 ]
             }
         ]

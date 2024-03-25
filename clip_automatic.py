@@ -94,10 +94,9 @@ if __name__=='__main__':
     for month in fetch_months:
         print(month)
         for poly in poly_fetch_all:
-            raster_path = f"{table['data_dir']}/global_monthly_{month[0]}_{months_num[month[1]]}_mosaic/{table['raster']}"
             output_path = 'temp_clipped.tif'
             multipolygon = loads(poly[1])
-            clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
+            super_clip('quads', month[0], months_num[month[1]], multipolygon, output_path)
             tif_path = output_path
             bands = calculate_average_color(tif_path)
 

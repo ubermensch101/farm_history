@@ -43,6 +43,10 @@ if __name__=='__main__':
         {table["key"]} >= {args.start_key}
     and
         {table["filter"]}
+    order by
+        {table["key"]}
+    limit
+        5
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
@@ -51,10 +55,9 @@ if __name__=='__main__':
     for farm in poly_fetch_all:
         row = [farm[0]]
         for month in annotate_months:
-            raster_path = f"{table['data_dir']}/global_monthly_{month[0]}_{months_data[month[1]]}_mosaic/{table['raster']}"
             multipolygon = loads(farm[1])
             output_path = 'temp_classify.tif'
-            clip_raster_with_multipolygon(raster_path, multipolygon, output_path)
+            super_clip('quads', month[0], months_data[month[1]], multipolygon, output_path)
             tiff_file = output_path
             raw_poly = farm[2]
             polygon = [(float(item.split(' ')[0]), float(item.split(' ')[1])) for item in raw_poly.strip().split('(')[3].split(')')[0].split(',')]
@@ -74,6 +77,9 @@ if __name__=='__main__':
                     break
                 if answer == 'n':
                     row.append(0)
+                    break
+                if answer == 's':
+                    row.append(0.5)
                     break
                 if answer == 'r':
                     continue
