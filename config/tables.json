@@ -1,0 +1,53 @@
+{
+    "villages": [
+        {
+            "schema": "public",
+            "table": "nearest_farmplots_map",
+            "geom_col": "farm_geom",
+            "key": "key",
+            "filter": "true"
+        },
+        {
+            "schema": "public",
+            "table": "nearest_kharif_farmplots_map",
+            "geom_col": "farm_geom",
+            "key": "key",
+            "filter": "true"
+        },
+        {
+            "schema": "pilot", 
+            "table": "bid_558923",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        },
+        {
+            "schema": "pilot", 
+            "table": "bid_559692",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        },
+        {
+            "schema": "pilot", 
+            "table": "bid_559207",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        },
+        {
+            "schema": "pilot",
+            "table": "dagdagad_farmplots_dedup",
+            "geom_col": "geom",
+            "key": "gid",
+            "filter": "true"
+        },
+        {
+            "schema": "pilot", 
+            "table": "bid_559071",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        }
+    ]
+}
