@@ -23,8 +23,6 @@ BEGIN
             geom
         FROM
             filtered_amravati_pahani
-        WHERE
-            sowing_season_code = 1
         GROUP BY
             khate_number,
             full_name,
@@ -81,8 +79,8 @@ BEGIN
 
     -- Output the assignments
     outputsql := '
-    DROP TABLE IF EXISTS nearest_rabi_farmplots_map;
-    CREATE TABLE nearest_rabi_farmplots_map as
+    DROP TABLE IF EXISTS nearest_farmplots_map;
+    CREATE TABLE nearest_farmplots_map as
     SELECT * FROM temp_assignments;
     ';
     EXECUTE(outputsql);
