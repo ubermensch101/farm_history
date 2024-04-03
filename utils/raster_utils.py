@@ -46,9 +46,9 @@ def highlight_farm(raster_path, polygon):
     img.save('temp_classify.tif')
 
 def super_clip(directory, year, month, polygon, output_path):
-    available_quads = os.listdir('quads')
+    available_quads = os.listdir(directory)
     for quad in available_quads:
-        month_path = os.path.join('quads', quad, f'global_monthly_{year}_{month}_mosaic')
+        month_path = os.path.join(directory, quad, f'global_monthly_{year}_{month}_mosaic')
         files = os.listdir(month_path)
         for file in files:
             if file.endswith('quad.tif'):

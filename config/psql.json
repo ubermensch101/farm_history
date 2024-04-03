@@ -1,7 +1,7 @@
 {
     "host":"localhost",
     "port":"5432",
-    "user":"adityatorne",
-    "password":"Adisuru@2756",
+    "user":"sameer",
+    "password":"swimgood",
     "database":"dolr"
 }
