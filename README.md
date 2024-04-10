@@ -29,7 +29,7 @@ Running the pipeline:
   - `python3 src/crop_presence_basic/train_crop_presence.py` reads annotations.csv that must correspond to the existing table being processed (the first table in tables.json) and trains the crop presence model
 - Crop Cycle
   - Run `python3 src/crop_cycle_monthly/crop_cycle_inference.py` to infer cropping patterns based on crop probabilities and store the results in the database
-  - `python3 src/crop_cycle_monthly/train_crop_cycle.py` trains the crop cyle model based on cycle_annotations.py
+  - `python3 src/crop_cycle_monthly/train_crop_cycle.py` trains the crop cycle model based on cycle_annotations.py
 - Analysis
   - Run `python3 src/analysis/study_plot.py -k <some_key>` to study the farm plot with that specific key
   - Run `python3 src/analysis/study_random_plot.py` to study a random plot
@@ -40,6 +40,9 @@ Running the pipeline:
 
 Work in Progress:
 -----------------
-
-- Switching to a CNN based crop presence predictor
-- Shifting to weekly data from planet labs to improve rabi sowing period detection
+1. Switching to a CNN based crop presence predictor
+   1. Trying HSV based models instead of RGB
+   2. Using HSV histogram bins as inputs to a neural network 
+2. Shifting to weekly data from planet labs to improve rabi sowing period detection
+3. Planet dependencies:
+   1. `pip3 install click --upgrade` and `pip3 install planet --upgrade` makes planet go to version 2 which is required for its api

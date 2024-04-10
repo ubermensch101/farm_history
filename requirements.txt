@@ -11,3 +11,4 @@ tensorflow
 torch
 torchvision
 torch-summary
+planet
