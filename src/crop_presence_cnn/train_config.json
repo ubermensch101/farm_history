@@ -1,0 +1,18 @@
+{   
+    "__comment1__": "Global Config",
+    "device":"cpu",
+
+    "__comment2__": "CNN config",
+    "img_size": 64,
+    "epochs": 30,
+    "lr": 5e-3,
+    "batch_size": 8,
+    "lambda_l2":1e-2,
+
+
+    "__comment3__": "This is for histogram classifier",
+    "bins": 40,
+    "lr_hist": 1e-2,
+    "epochs_hist": 100,
+    "batch_size_hist": 16
+}

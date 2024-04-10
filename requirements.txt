@@ -2,10 +2,12 @@ pandas
 psycopg2-binary
 requests
 rasterio
-opencv-python
 opencv-contrib-python
 openpyxl
 scikit-learn
 geopandas
 matplotlib
 tensorflow
+torch
+torchvision
+torch-summary

@@ -1,16 +1,19 @@
 Structure:
--
+----------
+
 - All relevant constants are stored in `config/`, and are accessed via the Config class.
 - Each file must be runnable on its own, and hence must have an if `__name__=="__main__"` section.
 
 Installation flow: always at root
--
+---------------------------------
+
 1. Create a venv using `python3 -m venv venv`
 2. Activate venv usin `source venv/bin/activate`
 3. `pip3 install -e .` to install everything in requirements.txt
 
 Running the pipeline:
--
+---------------------
+
 - Configuration
   - Open `config/`
   - Configure tables.json (The codebase runs only on the first table in the list)
@@ -30,8 +33,13 @@ Running the pipeline:
 - Analysis
   - Run `python3 src/analysis/study_plot.py -k <some_key>` to study the farm plot with that specific key
   - Run `python3 src/analysis/study_random_plot.py` to study a random plot
+- CNN Crop Presence
+  - Run `python3 src/crop_presence_cnn/train_crop_presence_cnn.py `to train CNN model (Refer to `src/crop_presence_cnn/model.py` for CNN architecture)
+  - Run `python3 src/crop_presence_cnn/crop_presence_inference_cnn.py ` to infer monthly crop presence probabilities from histogram model
+  - Run `python3 src/crop_presence_cnn/annotate_cnn.py -s <start-key> -e <end-key> -d <train/test> ` to annotate farm plots
 
 Work in Progress:
--
+-----------------
+
 - Switching to a CNN based crop presence predictor
 - Shifting to weekly data from planet labs to improve rabi sowing period detection

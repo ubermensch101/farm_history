@@ -1,0 +1,8 @@
+## CNN - Data
+data/
+
+## raster files
+*.tif
+
+## 
+quads/
