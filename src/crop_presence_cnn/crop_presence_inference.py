@@ -10,41 +10,68 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 from shapely.wkt import loads
 from train_utils import *
-from train_utils import *
-
+from models import *
 
 from config.config import *
 from utils.postgres_utils import *
 from utils.raster_utils import *
 
-## FILE PATHS
-ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
-RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_cnn","temp_clipped.tif")
-DEFAULT_CHECKPOINT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights", "crop_presence_hist.pt")
 
-
-## DATABASE CONFIG
+## TRAINING CONFIG
 dir_path = os.path.dirname(__file__)
 setup_file = os.path.join(dir_path,"train_config.json")
 with open(setup_file,'r') as file:
     train_config = json.loads(file.read())
 
+## FILE PATHS
+ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
+RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_cnn","temp_clipped.tif")
+
+
+# Pre-processing    
+model_types = ["hist", "hsv", "rgb"]
+
+model_transforms = {
+    "hist": transforms.Compose([
+                transforms.ToTensor(), 
+                ToHistogram(bins=train_config['bins'])
+                ]),
+                   
+    "rgb": transforms.Compose([
+                transforms.ToTensor(),
+                ]),
+    "hsv": transforms.Compose([
+                ToHSV(),
+                transforms.ToTensor()
+                ])
+}
+
+## Utilities
+def load_model(model_type):
+    if model_type.lower() in ["rgb", "hsv"]:
+        model= SimpleCNN()
+        model.load(train_config[f'checkpoint_path_{model_type.lower()}'])
+
+    elif model_type.lower() in ["hist"]:
+        model = torch.load(train_config[f'checkpoint_path_{model_type.lower()}'])
+
+    return model
+
+
 
 if __name__=='__main__':
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--checkpoint", type=str, default=DEFAULT_CHECKPOINT_PATH)
+    parser.add_argument("-m", "--model-type", type=str, required=True, help= "hist -> histogram Model \n rgb -> CNN for RGB, \n hsv-> CNN for HSV")
     args = parser.parse_args()
 
+    if args.model_type.lower() not in model_types:
+        raise ValueError("Model doesn't exist")
 
-    # Pre-processing    
-    transform_hsv = transforms.Compose([
-    transforms.ToTensor(), 
-    ToHistogram(bins=train_config['bins']),  # Calculate normalized histograms for each channel
-    ])
-    # Load crop prediciton model 
-    model = torch.load(DEFAULT_CHECKPOINT_PATH)
+    # Load crop prediciton model and configurations
+    transform = model_transforms[args.model_type.lower()]
+    model = load_model(args.model_type)
 
+    ## Load Database config
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
@@ -59,12 +86,12 @@ if __name__=='__main__':
 
     for month in ml_months:
         if not check_column_exists(pgconn_obj, table["schema"], table["table"],
-                               f'{months_names[month[1]]}_{month[0]}_crop_presence'):
+                               f'{months_names[month[1]]}_{month[0]}_crop_presence_ml'):
             sql_query = f"""
             alter table
                 {table["schema"]}.{table["table"]}
             add column
-                {months_names[month[1]]}_{month[0]}_crop_presence numeric
+                {months_names[month[1]]}_{month[0]}_crop_presence_ml numeric
             """
             with pgconn.cursor() as curs:
                 curs.execute(sql_query)
@@ -80,7 +107,6 @@ if __name__=='__main__':
         {table["filter"]}
     order by
         {table["key"]}
-
     """
 
     with pgconn.cursor() as curs:
@@ -89,6 +115,7 @@ if __name__=='__main__':
 
 
     for farm in poly_fetch_all:
+        print(f"Running Crop Detection on farm ID: {farm[0]}")
         for month in ml_months:
 
             multipolygon = loads(farm[1])
@@ -96,32 +123,29 @@ if __name__=='__main__':
             raw_poly = farm[2]
             polygon = [(float(item.split(' ')[0]), float(item.split(' ')[1])) for item in raw_poly.strip().split('(')[3].split(')')[0].split(',')]
             remove_padding(RASTER_PATH, RASTER_PATH)
-            #f'{table["key"]}: {farm[0]}, {months_names[month[1]]}-{month[0]}'
-            # Load image
-            image = Image.open(RASTER_PATH)
-            image= np.array(image)
 
-            image = image[:,:,:3]   ## Drop Near IR regions
-            input_tensor = transform_hsv(image).unsqueeze(0)
+            # image = np.array(Image.open(RASTER_PATH))[:,:,:3]       ## Drop Near IR regions 
+            # input_tensor = transform(image).unsqueeze(0)
+            image  = Image.fromarray(np.array(Image.open(RASTER_PATH))[:,:,:3])
+            input_tensor = transform(image).unsqueeze(0)
+            
             with torch.no_grad():
                 output = model(input_tensor)
                 # Apply softmax to get probabilities
                 probabilities = F.softmax(output, dim=1).flatten()
 
-            crop_presence = probabilities[1].item() 
-
+            crop_presence_prob= probabilities[1].item() 
 
             sql_query = f"""
             update
                 {table["schema"]}.{table["table"]}
             set
-                {months_names[month[1]]}_{month[0]}_crop_presence = {crop_presence}
+                {months_names[month[1]]}_{month[0]}_crop_presence_ml = {crop_presence_prob}
             where
                 {table["key"]} = {farm[0]}
             """
             with pgconn.cursor() as curs:
                 curs.execute(sql_query)
-
     pgconn.commit()
 
 

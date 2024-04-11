@@ -14,7 +14,7 @@ from torchvision import transforms, datasets
 from torchsummary import summary
 import matplotlib.pyplot as plt
 from src.crop_presence_cnn.train_utils import *
-from src.crop_presence_cnn.models import SimpleCNN, train_cnn
+from src.crop_presence_cnn.models import *
 from models import *
 ## Reproducibility
 torch.manual_seed(0)

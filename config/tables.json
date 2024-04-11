@@ -1,5 +1,13 @@
 {
     "villages": [
+
+        {
+            "schema": "pilot", 
+            "table": "bid_558923",
+            "geom_col": "wkb_geometry",
+            "key": "ogc_fid",
+            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
+        }, 
         {
             "schema": "pilot",
             "table": "dagdagad_farmplots_dedup",
@@ -7,13 +15,7 @@
             "key": "gid",
             "filter": "true"
         },
-        {
-            "schema": "pilot", 
-            "table": "bid_558923",
-            "geom_col": "wkb_geometry",
-            "key": "ogc_fid",
-            "filter": "description = 'field' and st_area(wkb_geometry::geography) > 1000"
-        },
+
         {
             "schema": "public",
             "table": "nearest_farmplots_map",

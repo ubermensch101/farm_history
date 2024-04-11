@@ -73,11 +73,20 @@ class ToHistogram:
         self.max = max
     
     def __call__(self, img):
-        # Assuming img is a Torch Tensor of shape [C, H, W] and normalized to [0, 1]
+
         histograms = torch.stack([torch.histc(channel, bins=self.bins, min=self.min, max=self.max) for channel in img])
         # Normalize histograms
         histograms = histograms / histograms.sum(dim=1, keepdim=True)
         return histograms
+
+
+class ToHSV:
+    def __init__(self, ):
+            pass
+    
+    def __call__(self, img):
+        img = img.convert('HSV')
+        return img
 
 
 

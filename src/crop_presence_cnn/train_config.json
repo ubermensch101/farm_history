@@ -1,18 +1,27 @@
 {   
     "__comment1__": "Global Config",
     "device":"cpu",
+    "img_size": 64,
 
     "__comment2__": "CNN config",
-    "img_size": 64,
     "epochs": 30,
-    "lr": 5e-3,
+    "lr": 5e-4,
     "batch_size": 8,
-    "lambda_l2":1e-2,
+    "lambda_l2":1e-3,
+    "checkpoint_path_rgb": "/home/screa/farm_history/src/crop_presence_cnn/weights/crop_presence_cnn.pt",
 
 
-    "__comment3__": "This is for histogram classifier",
+    "__comment3__": "Histogram classifier config",
     "bins": 40,
     "lr_hist": 1e-2,
     "epochs_hist": 100,
-    "batch_size_hist": 16
+    "batch_size_hist": 16,
+    "checkpoint_path_hist": "/home/screa/farm_history/src/crop_presence_cnn/weights/crop_presence_hist.pt",
+
+
+    "__comment4__": "HSV_CNN config",
+    "epochs_hsv": 50,
+    "batch_size_hsv": 8,
+    "lr_hsv": 1e-3,
+    "checkpoint_path_hsv": "/home/screa/farm_history/src/crop_presence_cnn/weights/crop_presence_hsv.pt"
 }

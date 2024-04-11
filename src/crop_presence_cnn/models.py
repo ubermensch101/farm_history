@@ -28,15 +28,14 @@ class SimpleClassifier(nn.Module):
         super().__init__()  
         self.flatten = nn.Flatten()
         self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(3*bins, 8)
-        self.fc2 = nn.Linear(8, 2)
+        self.fc1 = nn.Linear(3*bins, 32)
+        self.fc2 = nn.Linear(32, 2)
         
     def forward(self, x):
         x = self.flatten(x)
         x = self.fc1(x)
         x = self.relu(x)
         x = self.fc2(x)
-        
         return x
 
     def save(self, filepath):
@@ -55,16 +54,16 @@ class SimpleCNN(nn.Module):
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
         self.dropout1 = nn.Dropout(p=0.2)  
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
         self.dropout2 = nn.Dropout(p=0.3)  
-        self.conv3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(256)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
         self.dropout3 = nn.Dropout(p=0.3)
-        self.conv4 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.bn4 = nn.BatchNorm2d(256)
         self.dropout4 = nn.Dropout(p=0.4)
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)  
@@ -109,80 +108,59 @@ class SimpleCNN(nn.Module):
     
     def save(self, filepath):
         # Create a dictionary to store necessary information
-        checkpoint = {
-            'state_dict': self.state_dict(),
-        }
-    
-        torch.save(checkpoint, filepath)
-
+        torch.save(self.state_dict(), filepath)
 
     def load(self, filepath):
         try:
-            model = torch.load(filepath)
-            model.eval()
-            return model
-            
+            self.load_state_dict(torch.load(filepath))
+            self.eval()
         except FileNotFoundError as e:
             print("Error Loading Model: ", e)
 
 
 
-# def train_one_epoch(model, epoch_id, optimizer, criterion, train_loader, val_loader=None,callbacks=None, device="cpu"):
-#     model = model.to(device)
-#     total_loss = 0
-#     correct = 0
-#     total = 0
-#     model.train()
-#     for inputs, labels in train_loader:
-#         inputs, labels = inputs.to(device), labels.to(device)
+def train_one_epoch(model, epoch_id, optimizer, criterion, train_loader,  val_loader=None, device="cpu"):
 
-#         optimizer.zero_grad()
-#         outputs = model(inputs)
-#         _, predicted = torch.max(outputs, 1)      
-#         total += labels.size(0)
-#         correct += (predicted == labels).sum().item()
-#         loss = criterion(outputs, labels)
-#         # Compute L2 regularization 
-#         l2_regularization = 0
-#         for param in model.parameters():
-#             l2_regularization += torch.norm(param, p=2)
-#         loss += lambda_l2 * l2_regularization
-#         total_loss += loss.item()
-#         loss.backward()
-#         optimizer.step()
-#     t_accuracy = correct / total
+    total_loss, total_val_loss = 0, 0
+    model = model.to(device)
+    model.train()
+            
+    optimizer.zero_grad()
+    for inputs, labels in train_loader:
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        # Compute L2 regularization 
+        l2_regularization = 0
+        for param in model.parameters():
+            l2_regularization += torch.norm(param, p=2)
+        loss += lambda_l2 * l2_regularization
+        total_loss += loss.item()
+        loss.backward()
+        optimizer.step()
 
-#     ## Validation
-#     if val_loader:
-#         model.eval()
-#         with torch.no_grad():
-#             correct = 0
-#             total = 0
-#             total_val_loss = 0
+    ## Validation
+    if val_loader:
+        model.eval()
+        with torch.no_grad():
+            total_val_loss = 0
 
-#             for inputs, labels in val_loader:
-#                 inputs, labels = inputs.to(device), labels.to(device)
-#                 outputs = model(inputs)
-#                 _, predicted = torch.max(outputs, 1)
-#                 total += labels.size(0)
-#                 correct += (predicted == labels).sum().item()
-#                 loss = criterion(outputs, labels)
-#                 total_val_loss +=loss.item()
-        
-#         v_accuracy = correct / total
-        
-#     return total_loss, t_accuracy, total_val_loss, v_accuracy
-#     # scheduler.step(total_val_loss)
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                total_val_loss +=loss.item()   
+    return {"train_loss": total_loss, "val_loss":total_val_loss}
 
 
-def train_classifier(model, num_epochs, optimizer, criterion, train_loader, val_loader=None,callbacks=None, device="cpu"):
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer,mode="min", factor=0.5, patience=10)
+def train_classifier(model, num_epochs, optimizer, criterion,train_loader, scheduler=None, val_loader=None,callbacks=None, device="cpu", lambda_l2=0):
     model = model.to(device)
     train_loss = []
     val_loss = []
     train_accuracy = []
     val_accuracy = []
-
+    
     for epoch in range(num_epochs):
         log = ""
         total_loss = 0
@@ -230,7 +208,9 @@ def train_classifier(model, num_epochs, optimizer, criterion, train_loader, val_
             v_accuracy = correct / total
             val_accuracy.append(v_accuracy)
             log+= f'Validation Loss: {total_val_loss:.5f},  Val Accuracy: {v_accuracy * 100:.2f}%  ' 
-        # scheduler.step(total_val_loss)
+
+        if scheduler:
+            scheduler.step(total_val_loss)
         print(log)
 
         ## Activate Callbacks
