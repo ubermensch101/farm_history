@@ -12,7 +12,8 @@ from utils.raster_utils import *
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
 DATA_DIR = os.path.join(ROOT_DIR, "data")
-RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_cnn","temp_clipped.tif")
+RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_cnn", "temp_clipped.tif")
+HIGHLIGHT_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_cnn", "temp_highlighted.tif")
 
 # Create directory if doesn't exist
 if not os.path.exists(DATA_DIR):
@@ -80,14 +81,14 @@ if __name__=='__main__':
             super_clip('quads', month[0], months_data[month[1]], multipolygon, RASTER_PATH)
             raw_poly = farm[2]
             polygon = [(float(item.split(' ')[0]), float(item.split(' ')[1])) for item in raw_poly.strip().split('(')[3].split(')')[0].split(',')]
-            # img_show = highlight_farm(RASTER_PATH, polygon)
+            highlight_farm(RASTER_PATH, polygon, HIGHLIGHT_PATH)
 
             file_name = "_".join([str(m) for m in month])
             file_name =  f"{farm[0]}_{file_name}.tif"
             while True:
                 plt.ion()
                 # cropped_path = crop_highlighted_farm(RASTER_PATH, polygon)
-                img = plt.imread(RASTER_PATH)
+                img = plt.imread(HIGHLIGHT_PATH)
 
                 plt.figure(figsize=(10,6))
                 plt.title(f'{table["key"]}: {farm[0]}, {months_names[month[1]]}-{month[0]}')

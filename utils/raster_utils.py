@@ -37,14 +37,15 @@ def calculate_average_color(tif_path):
         else:
             raise ValueError("Need 4 bands corresponding to rgb and near-IR")
 
-def highlight_farm(raster_path, polygon):
+def highlight_farm(raster_path, polygon, output_path=None):
     with rasterio.open(raster_path) as dataset:
         pixel_poly = [dataset.index(*coord) for coord in polygon]
     pixel_poly = [(item[1], item[0]) for item in pixel_poly]
     img = Image.open(raster_path)
     draw = ImageDraw.Draw(img)
     draw.polygon(pixel_poly, outline='red')
-    img.save('temp_classify.tif')
+    if output_path is not None:
+        img.save(output_path)
     return img
 
 def super_clip(directory, year, month, polygon, output_path):
