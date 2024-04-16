@@ -20,7 +20,7 @@ crop_cycle_map = {
     "kharif_and_rabi": (0,0,1,0),
     "short_kharif": (1,0,0,0),
     "long_kharif": (0,1,0,0),
-    "perennial": (0,0,0,1)
+    "no_crop": (0,0,0,1)
 }
 Y = np.array([crop_cycle_map[item] for item in Y])
 

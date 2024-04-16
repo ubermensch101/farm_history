@@ -54,7 +54,7 @@ if __name__=='__main__':
         0: "short_kharif",
         1: "long_kharif",
         2: "kharif_and_rabi",
-        3: "perennial"
+        3: "no_crop"
     }
 
     sql_query = f"""
