@@ -30,19 +30,21 @@ Running the pipeline:
 - Crop Cycle
   - Run `python3 src/crop_cycle_monthly/crop_cycle_inference.py` to infer cropping patterns based on crop probabilities and store the results in the database
   - `python3 src/crop_cycle_monthly/train_crop_cycle.py` trains the crop cycle model based on cycle_annotations.py
+  - `python3 src/crop_cycle_monthly/annotate_cycle.py` is a tool to annotate crop cycles
 - Analysis
   - Run `python3 src/analysis/study_plot.py -k <some_key>` to study the farm plot with that specific key
   - Run `python3 src/analysis/study_random_plot.py` to study a random plot
 - CNN Crop Presence
   - Run `python3 src/crop_presence_cnn/train_crop_presence_cnn.py `to train CNN model (Refer to `src/crop_presence_cnn/model.py` for CNN architecture)
-  - Run `python3 src/crop_presence_cnn/crop_presence_inference_cnn.py ` to infer monthly crop presence probabilities from histogram model
+  - Run `python3 src/crop_presence_cnn/crop_presence_inference_cnn.py -m <hsv/rgb/hist> ` to infer monthly crop presence probabilities from histogram model
   - Run `python3 src/crop_presence_cnn/annotate_cnn.py -s <start-key> -e <end-key> -d <train/test> ` to annotate farm plots
 
 Work in Progress:
 -----------------
+
 1. Switching to a CNN based crop presence predictor
    1. Trying HSV based models instead of RGB
-   2. Using HSV histogram bins as inputs to a neural network 
+   2. Using HSV histogram bins as inputs to a neural network
 2. Shifting to weekly data from planet labs to improve rabi sowing period detection
 3. Planet dependencies:
    1. `pip3 install click --upgrade` and `pip3 install planet --upgrade` makes planet go to version 2 which is required for its api
