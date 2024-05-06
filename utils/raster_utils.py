@@ -56,8 +56,19 @@ def compute_hue_features(tif_path):
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])
             return hue_mean, hue_stddev
+        if data.shape[0] == 3:
+            # Uses the green band as the pixel mask if no pixel mask available
+            rgb_bands = np.array(data)
+            pixel_mask = rgb_bands[1]
+            pixel_mask = pixel_mask.astype(bool)
+            rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
+            hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+            hue = hsv_image[:,:,0]
+            hue_mean = np.mean(hue[pixel_mask])
+            hue_stddev = np.std(hue[pixel_mask])
+            return hue_mean, hue_stddev
         else:
-            raise ValueError("Need 3 bands corresponding to rgb and a pixel mask")
+            raise ValueError("Need 3 bands corresponding to rgb and a pixel mask\nOr at least 3 bands for rgb")
 
 def highlight_farm(raster_path, polygon, output_path=None):
     with rasterio.open(raster_path) as dataset:
@@ -71,13 +82,18 @@ def highlight_farm(raster_path, polygon, output_path=None):
     return img
 
 def super_clip(directory, year, month, polygon, output_path):
+    if year == None:
+        fortnight_no = month
+        subdir = str(fortnight_no)
+    else:
+        subdir = f'global_monthly_{year}_{month}_mosaic'
     available_quads = os.listdir(directory)
     for quad in available_quads:
-        month_path = os.path.join(directory, quad, f'global_monthly_{year}_{month}_mosaic')
-        files = os.listdir(month_path)
+        subdir_path = os.path.join(directory, quad, subdir)
+        files = os.listdir(subdir_path)
         for file in files:
-            if file.endswith('quad.tif'):
-                with rasterio.open(os.path.join(month_path, file)) as src:
+            if file.endswith('quad.tif') or file.endswith('response.tiff'):
+                with rasterio.open(os.path.join(subdir_path, file)) as src:
                     raster_bbox = src.bounds
                     raster_polygon = shape({
                         "type": "Polygon",
@@ -92,8 +108,9 @@ def super_clip(directory, year, month, polygon, output_path):
                         ]
                     })
                     if raster_polygon.intersects(polygon):
-                        raster_path = os.path.join(month_path, file)
+                        raster_path = os.path.join(subdir_path, file)
                         return clip_raster_with_multipolygon(raster_path, polygon, output_path)
+    raise Exception("Couldn't find intersecting raster")
                     
 
 
