@@ -53,6 +53,8 @@ def compute_hue_features(tif_path):
             rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
+            if len(hue[pixel_mask]) == 0:
+                return 0, 0
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])
             return hue_mean, hue_stddev
@@ -64,6 +66,8 @@ def compute_hue_features(tif_path):
             rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
+            if len(hue[pixel_mask]) == 0:
+                return 0, 0
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])
             return hue_mean, hue_stddev

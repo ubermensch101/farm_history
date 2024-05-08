@@ -82,13 +82,13 @@ if __name__=='__main__':
         fortnights.append((fortnight_start, fortnight_end, i+1))
 
     for fortnight in fortnights:
-        data_folder = os.path.join(ROOT_DIR, "fortnightly", table["table"], str(fortnight[2]))
+        data_folder = os.path.join(ROOT_DIR, "fortnightly", table["table"] + "_" + str(year), str(fortnight[2]))
         request = SentinelHubRequest(
             data_folder=data_folder,
             evalscript=evalscript_true_color,
             input_data=[
                 SentinelHubRequest.input_data(
-                    data_collection=DataCollection.SENTINEL2_L1C,
+                    data_collection=DataCollection.SENTINEL2_L2A,
                     time_interval=(fortnight[0].strftime("%Y-%m-%d"),
                                    fortnight[1].strftime("%Y-%m-%d")),
                     mosaicking_order=MosaickingOrder.LEAST_CC

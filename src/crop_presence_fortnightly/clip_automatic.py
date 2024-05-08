@@ -26,7 +26,8 @@ if __name__=='__main__':
     pgconn=pgconn_obj.connection()
 
     table = config.setup_details["tables"]["villages"][0]
-        
+
+    pgconn.commit()
     print("Processing table", f'{table["schema"]}.{table["table"]}')
     for i in range(24):
         sql_query = f"""
@@ -60,6 +61,7 @@ if __name__=='__main__':
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
         poly_fetch_all = curs.fetchall()
+    pgconn.commit()
 
     print(len(poly_fetch_all))
     for i in range(24):
