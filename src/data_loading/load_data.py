@@ -1,17 +1,20 @@
 from config import *
 from utils import *
-from scripts import *
 import argparse
 import os
 import subprocess
 
 def farmplotloading(path_to_farmplots = "", schema = ""):
     config = Config()
-    
+
+
     if path_to_farmplots != "":
+        if "data" not in config.setup_details:
+            config.setup_details["data"] = {}
         config.setup_details["data"]["farmplots_path"] = path_to_farmplots
-    
+
     pgconn = PGConn(config)
+    print("hi")
     
     return FarmplotLoading(config,pgconn, schema)
 
@@ -19,7 +22,7 @@ class FarmplotLoading:
     def __init__(self, config, psql_conn, schema):
         self.config = config
         self.psql_conn = psql_conn
-        self.path = "/home/sameer/Downloads/march6"
+        self.path = "/home/sameer/Downloads/Villages"
         # self.toggle = self.config.setup_details["data"]["toggle"]
         self.toggle = 0
         self.schema = schema

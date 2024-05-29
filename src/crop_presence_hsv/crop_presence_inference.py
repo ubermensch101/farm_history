@@ -1,5 +1,7 @@
 import numpy as np
+import argparse
 import pickle
+import subprocess
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -9,7 +11,14 @@ from sklearn.metrics import classification_report, confusion_matrix
 from config.config import *
 from utils.postgres_utils import *
 
+## FILE PATHS
+ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
+DATA_DIR = os.path.join(ROOT_DIR, "data", "crop_presence")
+CHECKPOINTS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
+
 if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
@@ -34,7 +43,8 @@ if __name__=='__main__':
             with pgconn.cursor() as curs:
                 curs.execute(sql_query)
 
-    with open(f'{os.path.dirname(os.path.realpath(__file__))}/crop_presence_detector.pkl', 'rb') as file:
+    ## Load your model, you can change path to your model
+    with open(os.path.join(CHECKPOINTS_DIR,"crop_presence_detector_RF.pkl"), 'rb') as file:     
         model = pickle.load(file)
 
     sql_query = f"""
@@ -53,6 +63,7 @@ if __name__=='__main__':
     keys = [item[0] for item in rows]
 
     for key in keys:
+        print(f"Processing farm_id: {key}/{keys[-1]}")
         for month in ml_months:
             sql_query = f"""
             select

@@ -1,8 +1,6 @@
 import os
 import shutil
 import subprocess
-import argparse
-import cv2
 import matplotlib.pyplot as plt
 from shapely.wkt import loads
 import pandas as pd
@@ -11,6 +9,7 @@ from utils.postgres_utils import *
 from utils.raster_utils import *
 
 
+## Utils
 def copy_files(input_directory, output_directory):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -26,44 +25,61 @@ def copy_files(input_directory, output_directory):
 
 
 ## FILE PATHS
-ROOT_DIR = os.path.abspath(
-    subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
-)
+ROOT_DIR = os.path.abspath(subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip())
 DATA_DIR = os.path.join(ROOT_DIR, "data", "crop_cycle")
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 TEMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
-
-crop_classes = ["kharif_rabi", "short_kharif", "long_kharif"]
+ANNOTATION_FILE = os.path.join(CURRENT_DIR, "annotations", "crop_data_after_final.csv")
+crop_classes = ["kharif_rabi", "short_kharif", "long_kharif","perennial","zaid","no_crop","weed"]
 label2dir = {
     "a": "kharif_rabi",
     "b": "short_kharif",
     "c": "long_kharif",
+    "p": "perennial",
+    "z": "zaid",
+    "n": "no_crop",
+    "w": "weed"
 }
 
-# Create directory if doesn't exist
-if not os.path.exists(TEMP_DIR):
-    os.makedirs(TEMP_DIR)
-
-if not os.path.exists(DATA_DIR):
-    try:
-        os.makedirs(DATA_DIR)
-        for crop_class in crop_classes:
-            os.makedirs(os.path.join(DATA_DIR, crop_class))
-
-    except OSError as e:
-        print(f"Error creating directory '{DATA_DIR}': \n {e}")
-
-
 if __name__ == "__main__":
+    # Create directory if doesn't exist
+    if not os.path.exists(TEMP_DIR):
+        os.makedirs(TEMP_DIR)
+
+    if not os.path.exists(DATA_DIR):
+        try:
+            os.makedirs(DATA_DIR)
+            for crop_class in crop_classes:
+                os.makedirs(os.path.join(DATA_DIR, crop_class))
+
+        except OSError as e:
+            print(f"Error creating directory '{DATA_DIR}': \n {e}")
 
     text = """
-    Annotation Instructions: \n\n
-    Enter \n
-    a : kharif & rabi \n
-    b : short kharif\n
-    c : long kharif
-"""
+        Annotation Instructions: \n\n
+        Input format: \n\n
+        a : kharif & rabi \n
+        b : short kharif\n
+        c : long kharif\n
+        p : perennial\n
+        z : zaid\n
+        n : no crop\n
+        w : weed\n
+    """
+    # Create directory if doesn't exist
+    if not os.path.exists(TEMP_DIR):
+        os.makedirs(TEMP_DIR)
 
+    if not os.path.exists(DATA_DIR):
+        try:
+            os.makedirs(DATA_DIR)
+            for crop_class in crop_classes:
+                os.makedirs(os.path.join(DATA_DIR, crop_class))
+
+        except OSError as e:
+            print(f"Error creating directory '{DATA_DIR}': \n {e}")
     print(text)
+
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn = pgconn_obj.connection()
@@ -98,7 +114,6 @@ if __name__ == "__main__":
         "dec",
     ]
     study_months = config.setup_details["months"]["agricultural_months"]
-
     sql_query = f"""
     select
         {table["key"]},
@@ -129,7 +144,13 @@ if __name__ == "__main__":
             images.append(np.array(Image.open(output_path)))
             bands = calculate_average_color(output_path)
 
+            ## Get prediction using bands & Add to csv
+
         columns = ""
+
+        if not check_column_exists(pgconn_obj, table["schema"], table["table"], "crop_cycle_22_23"):
+            add_column(pgconn_obj, f"{table['schema']}.{table['table']}", "crop_cycle_22_23", "text")
+        
         for month in study_months:
             columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
     
@@ -164,9 +185,9 @@ if __name__ == "__main__":
 
         label = input()
 
-        if label.lower() in ["a", "b", "c"]:
+        if label.lower() in ["a", "b", "c", "p","z","n","w"]:
             output_path = os.path.join(
-                DATA_DIR, label2dir[label.lower()], str(key)
+                DATA_DIR, label2dir[label.lower()], f"{table['table']}_{key}"
             )
+            print(output_path)
             copy_files(TEMP_DIR, output_path)
-            # print(output_path)

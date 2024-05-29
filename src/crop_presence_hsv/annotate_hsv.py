@@ -11,7 +11,7 @@ from utils.raster_utils import *
 
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
-DATA_DIR = os.path.join(ROOT_DIR, "data")
+DATA_DIR = os.path.join(ROOT_DIR, "data", "crop_presence")
 BUFFERED_RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_buffered.tif")
 RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_raw.tif")
 HIGHLIGHT_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_highlighted.tif")
@@ -36,8 +36,6 @@ if __name__=='__main__':
     table = config.setup_details["tables"]["villages"][0]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--start_key", type=int, required=True)
-    parser.add_argument("-e", "--end_key", type=int, required=True)
     parser.add_argument("-d","--data_split", type=str, default="train")
     args = parser.parse_args()
 
@@ -61,15 +59,11 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
-        {table["key"]} <= {args.end_key}
-    and
-        {table["key"]} >= {args.start_key}
-    and
         {table["filter"]}
     order by
-        {table["key"]}
+        RANDOM()
     limit
-        5
+        500
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
