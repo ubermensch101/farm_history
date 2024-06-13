@@ -9,7 +9,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from urllib3.util.retry import Retry
-
+from tqdm import tqdm
 import numpy as np
 import rasterio
 from shapely.wkt import loads
@@ -81,7 +81,7 @@ if __name__=='__main__':
     print(len(poly_fetch_all))
     for month in fetch_months:
         print(month)
-        for poly in poly_fetch_all:
+        for poly in tqdm(poly_fetch_all, desc=f"Processing farmplots ({months_name[month[1]]})"):
             output_path = f'{os.path.dirname(os.path.realpath(__file__))}/temp_clipped.tif'
             multipolygon = loads(poly[1])
             super_clip('quads', month[0], months_num[month[1]], multipolygon, output_path)

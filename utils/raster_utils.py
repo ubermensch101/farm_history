@@ -85,7 +85,14 @@ def highlight_farm(raster_path, polygon, output_path=None):
         img.save(output_path)
     return img
 
+
+
 def super_clip(directory, year, month, polygon, output_path):
+
+    """
+    Description:    This function clips the raster image with the provided polygon
+                    and saves the clipped image to the output path.
+    """
     if year == None:
         fortnight_no = month
         subdir = str(fortnight_no)
@@ -115,9 +122,59 @@ def super_clip(directory, year, month, polygon, output_path):
                         raster_path = os.path.join(subdir_path, file)
                         return clip_raster_with_multipolygon(raster_path, polygon, output_path)
     raise Exception("Couldn't find intersecting raster")
+
+
+def super_clip_interval(directory, year, interval_index, polygon, output_path):
+    """
+    Description:    This function clips the raster image with the provided polygon
+                    and saves the clipped image to the output path.
+
+    Args:       
+                directory: str             - The directory containing the raster images
+                year: int                  - The agricultural year to study farming activity
+                interval_index: int        - The index of the interval within the year eg, 4 for the 4th month,4th fortnight, 4th week
+                polygon: shapely.geometry  - The polygon to clip the raster image with
+                output_path: str           - The path to save the clipped image to
+    
+    Returns:    None
+    """
+
+    interval_type = directory.split('/')[-1]
+    if year==None:
+        try:
+            year = os.listdir(directory)[0]
+        except:
+            raise Exception("No quad file for any year")
+        
+    subdir = os.path.join(directory, str(year), str(interval_index))
+    available_quads = os.listdir(os.path.join(directory, str(year)))
+    if available_quads == []:
+        raise Exception(f"No quad file for year: {year}")
+    
+    for quad in available_quads:
+        subdir_path = os.path.join(directory, quad, subdir)
+        files = os.listdir(subdir_path)
+        for file in files:
+            if file.endswith('quad.tif') or file.endswith('response.tiff'):
+                with rasterio.open(os.path.join(subdir_path, file)) as src:
+                    raster_bbox = src.bounds
+                    raster_polygon = shape({
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [raster_bbox.left, raster_bbox.bottom],
+                                [raster_bbox.right, raster_bbox.bottom],
+                                [raster_bbox.right, raster_bbox.top],
+                                [raster_bbox.left, raster_bbox.top],
+                                [raster_bbox.left, raster_bbox.bottom]
+                            ]
+                        ]
+                    })
+                    if raster_polygon.intersects(polygon):
+                        raster_path = os.path.join(subdir_path, file)
+                        return clip_raster_with_multipolygon(raster_path, polygon, output_path)
+    raise Exception("Couldn't find intersecting raster")
                     
-
-
 """
 Crop farm image from raster image
 """

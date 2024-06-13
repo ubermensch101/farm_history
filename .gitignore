@@ -1,17 +1,16 @@
 ## CNN -Train Data
+__pycache__/
 data/
 
 ## raster files
 *.tif
-
-## 
 quads/
+fortnightly/
+weekly/
 
 ## Temporary Python scripts
 temp.py
-
 .DS_Store
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

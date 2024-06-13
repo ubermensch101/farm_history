@@ -29,8 +29,8 @@ if __name__=='__main__':
     year = args.year
 
     sh_config = SHConfig()
-    sh_config.sh_client_id = 'e3a62bc6-8f7e-43b9-8a01-b16ac86bfe7d'
-    sh_config.sh_client_secret = 'M5tkaWx1JhEwUYq6LmX7FtKwp8mtwjsu'
+    sh_config.sh_client_id = '4796405e-1d2a-4b46-9813-bc8d58cc1d3f'
+    sh_config.sh_client_secret = 'MGpYNqJcsqqFah9jNnhM0lDp0KvKUkyE'                
 
     config = Config()
     pgconn_obj = PGConn(config)

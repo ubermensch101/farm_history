@@ -1,20 +1,18 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import cv2
+import pickle
 import argparse
 import subprocess
-import time
-import psycopg2
-import requests
+from tqdm import tqdm
+import numpy as np  
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from urllib3.util.retry import Retry
 
 from tensorflow.keras.models import load_model
-import numpy as np
-import rasterio
 from shapely.wkt import loads
 from rasterio.mask import mask
-import cv2
-import pickle
 
 # from tensorflow.keras.models import load_model
 
@@ -22,41 +20,44 @@ from config.config import Config
 from utils.postgres_utils import *
 from utils.raster_utils import *
 
+import warnings
+warnings.filterwarnings("ignore")
+
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 ## Modify annotations path here
 ANNOTATIONS_PATH = os.path.join(CURRENT_DIR, "annotations", "crop_data_after_final.csv")
-MODEL_PATH = os.path.join(CURRENT_DIR, "weights", "crop_cycle_predictor_SVC.pkl")
+MODEL_PATH = os.path.join(CURRENT_DIR, "weights", "crop_cycle_predictor_LSTM.keras")
 
-if __name__=='__main__':
+if __name__=='__main__':    
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
 
     table = config.setup_details["tables"]["villages"][0]
 
-    if not check_column_exists(pgconn_obj, table["schema"], table["table"], "crop_cycle_22_23"):
-        sql_query = f"""
-        alter table
-            {table["schema"]}.{table["table"]}
-        add column
-            crop_cycle_22_23 text        
-        """
-        with pgconn.cursor() as curs:
-            curs.execute(sql_query)
-
     months_data = ['01','02','03','04','05','06',
                    '07','08','09','10','11','12']
     months_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
                     'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
     cycle_months = config.setup_details["months"]["agricultural_months"]
+    year = cycle_months[0][0]
     columns = ""
     for month in cycle_months:
         columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
+    
+    if not check_column_exists(pgconn_obj, table["schema"], table["table"], f"crop_cycle_{year}_{year+1}"):
+        sql_query = f"""
+        alter table
+            {table["schema"]}.{table["table"]}
+        add column
+            crop_cycle_{year}_{year+1} text        
+        """
+        with pgconn.cursor() as curs:
+            curs.execute(sql_query)
 
-    # model = load_model(f'{os.path.dirname(os.path.realpath(__file__))}/crop_cycle_predictor.keras')
     if MODEL_PATH.endswith((".keras", ".h5")):
         model = load_model(MODEL_PATH)
 
@@ -91,8 +92,8 @@ if __name__=='__main__':
         rows = curs.fetchall()
     keys = [item[0] for item in rows]
 
-    for key in keys:
-        print(key)
+    for key in tqdm(keys, desc="Processing farmplots"):
+
         sql_query = f"""
         select
             {columns}
@@ -124,7 +125,7 @@ if __name__=='__main__':
         update
             {table["schema"]}.{table["table"]}
         set
-            crop_cycle_22_23 = '{crop_cycle}'
+            crop_cycle_{year}_{year+1} = '{crop_cycle}'
         where
             {table["key"]} = {key}
         """

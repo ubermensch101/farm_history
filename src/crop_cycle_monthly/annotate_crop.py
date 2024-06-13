@@ -85,34 +85,10 @@ if __name__ == "__main__":
     pgconn = pgconn_obj.connection()
 
     table = config.setup_details["tables"]["villages"][0]
-    months_data = [
-        "01",
-        "02",
-        "03",
-        "04",
-        "05",
-        "06",
-        "07",
-        "08",
-        "09",
-        "10",
-        "11",
-        "12",
-    ]
-    months_names = [
-        "jan",
-        "feb",
-        "mar",
-        "apr",
-        "may",
-        "jun",
-        "jul",
-        "aug",
-        "sep",
-        "oct",
-        "nov",
-        "dec",
-    ]
+    months_data = ["01","02","03","04","05","06",
+                   "07","08","09","10","11","12",]
+    months_names = ["jan","feb","mar","apr","may","jun",
+                    "jul", "aug", "sep","oct","nov","dec",]
     study_months = config.setup_details["months"]["agricultural_months"]
     sql_query = f"""
     select

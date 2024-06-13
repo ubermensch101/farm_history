@@ -18,7 +18,6 @@ ORDERS_API_URL = 'https://api.planet.com/compute/ops/orders/v2'
 BASEMAP_API_URL = 'https://api.planet.com/basemaps/v1/mosaics'
 
 SESSION = requests.Session()
-
 SESSION.auth = (PL_API_KEY, '')
 AUTH = HTTPBasicAuth(PL_API_KEY, '')
 
@@ -27,7 +26,7 @@ SESSION.mount('https://', HTTPAdapter(max_retries=retries))
 
 config = Config()
 pgconn_obj = PGConn(config)
-pgconn=pgconn_obj.connection()
+pgconn = pgconn_obj.connection()
 
 table = config.setup_details["tables"]["villages"][0]
 data_directory = f"{os.path.dirname(os.path.realpath(__file__))}/../../quads/{table['table']}"
@@ -113,32 +112,46 @@ def download_results(results, overwrite=False):
         
         if overwrite or not path.exists():
             print('downloading {} to {}'.format(name, path))
-            r = requests.get(url, allow_redirects=True)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            open(path, 'wb').write(r.content)
-            hash = name.strip().split('/')[0]
-            os.system(f"cp -r {os.path.join(data_directory, hash)}/global_monthly_* {data_directory}")
-            os.system(f"rm -rf {os.path.join(data_directory, hash)}")
+            success = False
+            retries = 3
+            while not success and retries > 0:
+                try:
+                    r = requests.get(url, allow_redirects=True, timeout=(10, 60))  # (connect timeout, read timeout)
+                    r.raise_for_status()
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    open(path, 'wb').write(r.content)
+                    hash = name.strip().split('/')[0]
+                    os.system(f"cp -r {os.path.join(data_directory, hash)}/global_monthly_* {data_directory}")
+                    os.system(f"rm -rf {os.path.join(data_directory, hash)}")
+                    success = True
+                except (requests.exceptions.RequestException, requests.exceptions.ChunkedEncodingError) as e:
+                    print(f"Error downloading {name}: {e}")
+                    retries -= 1
+                    time.sleep(5)  # wait before retrying
         else:
             print('{} already exists, skipping {}'.format(path, name))
 
 order_urls = []
-for month in range(1, 13):
-    if month < 10:
-        month = "0" + str(month)
-    else:
-        month = str(month)
-    mosaic_name = f"global_monthly_2022_{month}_mosaic"
-    order_url = place_monthly_order(mosaic_name, points)
-    order_urls.append(order_url)
-    mosaic_name = f"global_monthly_2023_{month}_mosaic"
+
+# October 2023 to December 2023
+for month in range(10, 13):
+    mosaic_name = f"global_monthly_2023_{month:02}_mosaic"
     order_url = place_monthly_order(mosaic_name, points)
     order_urls.append(order_url)
 
+# January 2024 to April 2024
+for month in range(1, 5):
+    mosaic_name = f"global_monthly_2024_{month:02}_mosaic"
+    order_url = place_monthly_order(mosaic_name, points)
+    order_urls.append(order_url)
+
+print(order_urls)
 for order_url in order_urls:
     poll_for_success(order_url)
     r = requests.get(order_url, auth=AUTH)
     response = r.json()
+    print(response)
+    print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=')
     results = response['_links']['results']
     print([r['name'] for r in results])
     download_results(results)
