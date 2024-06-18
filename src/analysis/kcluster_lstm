@@ -1,0 +1,74 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import psycopg2
+
+# Function to fetch data from the database
+def fetch_data_from_database():
+    try:
+        # Connect to the database
+        conn = psycopg2.connect(
+            dbname="telangana_villages",
+            user="postgres",
+            password="postgres",
+            host="localhost",
+            port="5432"
+        )
+        print("Connected to the database.")
+
+        # Fetch data
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT crop_cycle_22_23, kcluster 
+            FROM mirzapur
+        """)
+        rows = cursor.fetchall()
+        crop_cycle_22_23_values = [row[0] for row in rows]
+        kcluster_values = [row[1] for row in rows]
+        print("Data fetched successfully.")
+        return crop_cycle_22_23_values, kcluster_values
+    except psycopg2.Error as e:
+        print("Error fetching data from the database.")
+        print(e)
+        return None, None
+    finally:
+        if conn is not None:
+            conn.close()
+            print("Connection closed.")
+
+# Fetch data from the database
+crop_cycle_22_23_values, kcluster_values = fetch_data_from_database()
+
+if crop_cycle_22_23_values is not None and kcluster_values is not None:
+    # Construct the confusion matrix
+    conf_matrix = confusion_matrix(crop_cycle_22_23_values, kcluster_values)
+
+    # Convert the confusion matrix to a DataFrame for better visualization
+    conf_matrix_df = pd.DataFrame(conf_matrix, index=np.unique(crop_cycle_22_23_values), columns=np.unique(kcluster_values))
+
+    # Visualize the confusion matrix
+    plt.figure(figsize=(10, 8))
+    plt.imshow(conf_matrix_df, cmap='Blues', interpolation='nearest')
+
+    # Add color bar
+    cbar = plt.colorbar()
+    cbar.set_label('Count')
+
+    # Add annotations
+    thresh = conf_matrix.max() / 2.
+    for i in range(conf_matrix.shape[0]):
+        for j in range(conf_matrix.shape[1]):
+            plt.text(j, i, format(conf_matrix[i, j], 'd'),
+                    ha="center", va="center",
+                    color="white" if conf_matrix[i, j] > thresh else "black")
+
+    # Set labels and ticks
+    plt.title('Confusion Matrix')
+    plt.xlabel('kcluster')
+    plt.ylabel('crop_cycle_22_23')
+    plt.xticks(np.arange(len(np.unique(kcluster_values))), np.unique(kcluster_values), rotation=45)
+    plt.yticks(np.arange(len(np.unique(crop_cycle_22_23_values))), np.unique(crop_cycle_22_23_values))
+
+    plt.tight_layout()
+    plt.show()

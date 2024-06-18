@@ -39,7 +39,7 @@ if __name__=='__main__':
     from
         {table["schema"]}.{table["table"]}
     where
-        {table['filter']}
+        {table['filter']} AND ogc_fid=619
     order by
         random()
     limit
@@ -71,19 +71,22 @@ if __name__=='__main__':
     columns = ""
     for month in study_months:
         columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
-
+    
+    columns+="crop_cycle_22_23"
     sql_query = f"""
     select
         {columns}
-        crop_cycle_22_23
+        {table["key"]}
+
     from
         {table["schema"]}.{table["table"]}
     where
-        {table["key"]} = {key}
+        {table["key"]} = {key} 
     """
     with pgconn.cursor() as curs:
         curs.execute(sql_query)
         record = curs.fetchall()[0]
+        
     
     fig, axes = plt.subplots(nrows=4, ncols=3, figsize=(12,8))
     axes = axes.flatten()
