@@ -39,7 +39,7 @@ if __name__=='__main__':
     elif args.interval == "monthly":
         interval_length = 12
     elif args.interval == "weekly":
-        interval_length = 52
+        interval_length = 48
 
     config = Config()
     pgconn_obj = PGConn(config)

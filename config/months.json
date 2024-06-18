@@ -1,4 +1,9 @@
-{
+{   
+    "agricultural_years": [
+        2020,
+        2021,
+        2022
+    ],
     "agricultural_months": [
         [2022,4],
         [2022,5],

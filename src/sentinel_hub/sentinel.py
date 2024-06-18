@@ -9,6 +9,10 @@ Desciption:
     Output:
         - Satellite data in TIFF format for the given interval and year
 
+
+        
+Reference:
+    https://sentinelhub-py.readthedocs.io/en/latest/sh.html
 """
 
 import argparse
@@ -35,30 +39,30 @@ from utils.postgres_utils import PGConn
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
 
 def get_intervals(start, end, interval_type):
-    length = end - start
-    print("length:", length)
     interval_type = interval_type.lower()
+    intervals = []
+
     if interval_type == 'weekly':
-        delta = length/48
+        num_intervals = 48
+        delta = (end - start) / num_intervals
     elif interval_type == 'fortnightly':
-        delta = length/24
+        num_intervals = 24
+        delta = (end - start) / num_intervals
     elif interval_type == 'monthly':
-        delta = length/12  # Rough approximation of a month
+        num_intervals = 12
+        delta = (end - start) / num_intervals
     else:
         raise ValueError("Invalid interval type. Choose from 'weekly', 'fortnightly', or 'monthly'.")
 
-    print("delta:", delta)
-    intervals = []
     current_start = start
-    i = 1
-    while current_start < end:
-        current_end = current_start + delta
-        if current_end > end:
-            current_end = end
+    for i in range(1, num_intervals + 1):
+        current_end = start + i * delta
         intervals.append((current_start, current_end, i))
         current_start = current_end
-        i += 1
 
+    print("start :", start)
+    print("end :", end)
+    print("delta :", delta)
     return intervals
 
 if __name__=='__main__':
@@ -70,27 +74,23 @@ if __name__=='__main__':
 
     ## Arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-y", "--year", type=int, default= None,
-                        help="Agricultural year to be processed")
     parser.add_argument("-i", "--interval", type=str, choices=["weekly", "fortnightly", "monthly"], default="monthly",
                         help="Interval for fetching data (weekly, fortnightly, monthly)")
-    
+
     args = parser.parse_args()
-    year = args.year
     interval_type = args.interval
 
-    # months_data = ['01','02','03','04','05','06',
-    #             '07','08','09','10','11','12']
-
-    months_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
-                    'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
-
+    months_names = ['may', 'jun', 'jul', 'aug', 'sep', 'oct',
+                     'nov', 'dec', 'jan', 'feb', 'mar', 'apr']
+    
+    
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
-
+    years = config.setup_details['months']['agricultural_years'] 
     table = config.setup_details["tables"]["villages"][0]
 
+    
     sql_query = f"""
     select
         st_asgeojson(st_envelope(st_union(st_transform({table["geom_col"]}, 4674))))
@@ -122,49 +122,44 @@ if __name__=='__main__':
         }
     """
 
-    ## If year argument is provided, fetch data for that year only
-    if year is not None:
+    for year in years:
+        print(f"Fetching quads for village : {table['table'].upper()} for year {year}")
         start_year = year
-        end_year = year+1
         start_month = 5
+        end_year = start_year+1
         end_month = 4
-        year = start_year
 
-    ## Else fetch data for the agricultural year/years present in config/months.json
-    else:
-        start_year = config.setup_details['months']['agricultural_months'][0][0]
-        start_month = config.setup_details['months']['agricultural_months'][0][1] + 1
-        end_year = config.setup_details['months']['agricultural_months'][-1][0]
-        end_month = config.setup_details['months']['agricultural_months'][-1][1] + 1
-      
-    start = datetime.date(start_year, start_month, 1)           
-    end = datetime.date(end_year, end_month, 30)
-    length = end - start
-    intervals = get_intervals(start, end, interval_type)
-    
-    for interval in intervals:
-        
-        data_folder = os.path.join(ROOT_DIR, interval_type, table["table"], f"{year}", f"{interval[2]}")       
-        request = SentinelHubRequest(
-            data_folder=data_folder,
-            evalscript=evalscript_true_color,
-            input_data=[
-                SentinelHubRequest.input_data(
-                    data_collection=DataCollection.SENTINEL2_L2A,
-                    time_interval=(interval[0].strftime("%Y-%m-%d"),
-                                   interval[1].strftime("%Y-%m-%d")),
-                    mosaicking_order=MosaickingOrder.LEAST_CC
+        start = datetime.date(start_year, start_month, 1)         
+        end = datetime.date(end_year, end_month, 30)
+        length = end - start
+        intervals = get_intervals(start, end, interval_type)
+
+        for interval in intervals:
+            
+            data_folder = os.path.join(ROOT_DIR, interval_type, table["table"], f"{year}", f"{interval[2]}")    
+            if os.path.exists(data_folder):
+                print("Data already exists for this interval! Skipping...")
+            else:
+                request = SentinelHubRequest(
+                    data_folder=data_folder,
+                    evalscript=evalscript_true_color,
+                    input_data=[
+                        SentinelHubRequest.input_data(
+                            data_collection=DataCollection.SENTINEL2_L2A,
+                            time_interval=(interval[0].strftime("%Y-%m-%d"),
+                                        interval[1].strftime("%Y-%m-%d")),
+                            mosaicking_order=MosaickingOrder.LEAST_CC
+                        )
+                    ],
+                    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+                    geometry=full_geometry,
+                    config=sh_config,
                 )
-            ],
-            responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
-            geometry=full_geometry,
-            config=sh_config,
-        )
-        request.get_data(save_data=True, show_progress=True)
-        # Removing weird hash directory
-        items = os.listdir(data_folder)
-        weird_dir = [item for item in items if os.path.isdir(os.path.join(data_folder, item))][0]
-        files_in_weird_dir = os.listdir(os.path.join(data_folder, weird_dir))
-        for file in files_in_weird_dir:
-            shutil.move(os.path.join(data_folder, weird_dir, file), data_folder)
-        shutil.rmtree(os.path.join(data_folder, weird_dir), ignore_errors=True)
+                request.get_data(save_data=True, show_progress=True)
+                # Removing weird hash directory
+                items = os.listdir(data_folder)
+                weird_dir = [item for item in items if os.path.isdir(os.path.join(data_folder, item))][0]
+                files_in_weird_dir = os.listdir(os.path.join(data_folder, weird_dir))
+                for file in files_in_weird_dir:
+                    shutil.move(os.path.join(data_folder, weird_dir, file), data_folder)
+                shutil.rmtree(os.path.join(data_folder, weird_dir), ignore_errors=True)

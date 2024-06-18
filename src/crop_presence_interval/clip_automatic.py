@@ -29,7 +29,7 @@ if __name__=='__main__':
     elif args.interval == "monthly":
         interval_length = 12
     elif args.interval == "weekly":
-        interval_length = 52
+        interval_length = 48
 
     config = Config()
     pgconn_obj = PGConn(config)
@@ -79,7 +79,7 @@ if __name__=='__main__':
         poly_fetch_all = curs.fetchall()
     pgconn.commit()
 
-    print(f"Total # Polygons : {len(poly_fetch_all)}")
+    print(f"Total # Farmplots : {len(poly_fetch_all)}")
 
     QUADS_DIR = os.path.join(ROOT_DIR, args.interval, table['table'])
     print("Quads dir:", QUADS_DIR)
