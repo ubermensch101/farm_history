@@ -1,12 +1,13 @@
 ## CNN -Train Data
 __pycache__/
 data/
-
+sentinel_annotation/
 ## raster files
 *.tif
 quads/
 fortnightly/
 weekly/
+monthly/
 
 ## Temporary Python scripts
 temp.py

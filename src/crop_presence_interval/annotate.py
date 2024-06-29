@@ -1,3 +1,10 @@
+"""
+Annotion script for crop presence interval data
+This script displays images of farm plots for each interval (week/biweek/month)in the agricultural season
+All the images for a farm plot are displayed together and the user is asked to input 'y' or 'n' for each image
+"""
+
+
 import os
 import subprocess
 import argparse
@@ -12,21 +19,14 @@ from utils.raster_utils import *
 
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
-DATA_DIR = os.path.join(ROOT_DIR, "fortnightly_data")
-BUFFERED_RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_buffered.tif")
-RASTER_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_raw.tif")
-HIGHLIGHT_PATH = os.path.join(ROOT_DIR, "src", "crop_presence_hsv", "temp_highlighted.tif")
+DATA_DIR = os.path.join(ROOT_DIR, "sentinel_annotation")
 
 # Create directory if doesn't exist
 if not os.path.exists(DATA_DIR):
     try:
         os.makedirs(DATA_DIR)
-        os.makedirs(os.path.join(DATA_DIR,"train"))
-        os.makedirs(os.path.join(DATA_DIR,"train", "n"))
-        os.makedirs(os.path.join(DATA_DIR,"train", "y"))
-        os.makedirs(os.path.join(DATA_DIR,"test"))
-        os.makedirs(os.path.join(DATA_DIR,"test", "n"))
-        os.makedirs(os.path.join(DATA_DIR,"test", "y"))
+        os.makedirs(os.path.join(DATA_DIR,"y"))
+        os.makedirs(os.path.join(DATA_DIR,"n"))
     except OSError as e:
         print(f"Error creating directory '{DATA_DIR}': {e}")
 
@@ -42,7 +42,7 @@ if __name__=='__main__':
     parser.add_argument("-i", "--interval", type=str, default="monthly")
     args = parser.parse_args()
 
-    year = config.setup_details['months']['agricultural_months'][0][0]
+    year = config.setup_details['months']['agricultural_years'][0]
 
     args.interval = args.interval.lower()
     if args.interval == "fortnightly":
@@ -98,6 +98,7 @@ if __name__=='__main__':
             output_path = f'{os.path.dirname(os.path.realpath(__file__))}/temp/{i+1}_clipped.tif'
             multipolygon = loads(farm[1])
             super_clip_interval(QUADS_DIR,year , i+1, multipolygon, output_path)
+            
             images.append(np.array(Image.open(output_path)))
         i = 0
         while(i < interval_length):
@@ -105,8 +106,11 @@ if __name__=='__main__':
             fig, axes = plt.subplots(nrows=interval_length//4, ncols=4, figsize=(12,8))
             axes = axes.flatten()
             for j, (ax, image) in enumerate(zip(axes, images)):
-                ax.imshow(image*2)
-                ax.set_title(f'fortnight: {j+1}')
+                ax.imshow(image)
+                if i == j:
+                    ax.set_title(f'{args.interval[:-2]}: {j+1}', color='r')
+                ax.set_title(f'{args.interval[:-2]}: {j+1}')
+
             plt.suptitle(f"{table['key']}: {key}", fontsize=20)
             plt.tight_layout()
             plt.show()
@@ -116,9 +120,11 @@ if __name__=='__main__':
                 file_name = f"{key}_{i+1}.tif"
                 output_path = os.path.join(DATA_DIR, answer, file_name)
                 tifffile.imwrite(output_path, images[i])
+                print(f"Saving to {output_path}")
                 i += 1
             elif answer =="d":      ## In case of image containing clouds -> Drop it
                 i += 1
+                print("Skipping...")
             else:
                 continue
     pgconn.commit()

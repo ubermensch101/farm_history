@@ -69,8 +69,8 @@ if __name__=='__main__':
 
     ## Sentinel API Configuration
     sh_config = SHConfig()
-    sh_config.sh_client_id = '4796405e-1d2a-4b46-9813-bc8d58cc1d3f'
-    sh_config.sh_client_secret = 'MGpYNqJcsqqFah9jNnhM0lDp0KvKUkyE' 
+    sh_config.sh_client_id = 'd5fd0f7c-3a77-4c94-9984-86f66cdaf1ac'
+    sh_config.sh_client_secret = 'IBSSLtzgdR8PPgHBsIvRNaL4FrMM0qbF' 
 
     ## Arguments
     parser = argparse.ArgumentParser()
@@ -122,6 +122,20 @@ if __name__=='__main__':
         }
     """
 
+    evalscript_bright_color = """
+        //VERSION=3
+        function setup() {
+            return {
+                input: ["B02", "B03", "B04", "CLM"],
+                output: { bands: 3 }
+            }
+        }
+
+        function evaluatePixel(sample) {
+            return [3.5*sample.B04, 3.5*sample.B03, 3.5*sample.B02];
+        }
+    """
+
     for year in years:
         print(f"Fetching quads for village : {table['table'].upper()} for year {year}")
         start_year = year
@@ -134,7 +148,9 @@ if __name__=='__main__':
         length = end - start
         intervals = get_intervals(start, end, interval_type)
 
-        for interval in intervals:
+        for i, interval in enumerate(intervals):
+
+            print(f"\nFetching data for {interval_type[:-2]} {i+1}")
             
             data_folder = os.path.join(ROOT_DIR, interval_type, table["table"], f"{year}", f"{interval[2]}")    
             if os.path.exists(data_folder):
@@ -142,7 +158,7 @@ if __name__=='__main__':
             else:
                 request = SentinelHubRequest(
                     data_folder=data_folder,
-                    evalscript=evalscript_true_color,
+                    evalscript=evalscript_bright_color,
                     input_data=[
                         SentinelHubRequest.input_data(
                             data_collection=DataCollection.SENTINEL2_L2A,

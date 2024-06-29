@@ -1,4 +1,5 @@
 import numpy as np
+from PIL import ImageEnhance, Image
 import os
 import cv2
 import rasterio
@@ -136,13 +137,12 @@ def super_clip_interval(directory, year, interval_index, polygon, output_path):
                 polygon: shapely.geometry  - The polygon to clip the raster image with
                 output_path: str           - The path to save the clipped image to
     
-    Returns:    None
     """
 
     interval_type = directory.split('/')[-1]
     if year==None:
         try:
-            year = os.listdir(directory)[0]
+            year = os.listdir(directory)[0]         ## Check for data present for any year
         except:
             raise Exception("No quad file for any year")
         
@@ -245,3 +245,23 @@ def remove_padding(raster_path:str, output_path: str):
     rectangular_representation = one_d_vector.reshape((width, height, n_channels))   
     pil_image = Image.fromarray(rectangular_representation.astype('uint8'))
     pil_image.save(output_path)
+
+def brighten_image(image):
+    """
+    Description:    This function brightens the input image using the OpenCV add function
+                    and the PIL ImageEnhance module.
+
+    Args:
+                image: np.ndarray    - The input image to be brightened
+
+    Returns:
+                brightened_image_pil: np.ndarray   - The brightened image using PIL
+    """
+
+    image_pil = Image.fromarray(image)
+    enhancer = ImageEnhance.Brightness(image_pil)
+    image_enhanced = enhancer.enhance(1.5)
+    brightened_image= np.array(image_enhanced)
+
+    return brightened_image
+

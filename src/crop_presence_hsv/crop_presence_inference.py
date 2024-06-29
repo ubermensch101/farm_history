@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import pickle
 import subprocess
+from tqdm import tqdm
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -44,7 +45,7 @@ if __name__=='__main__':
                 curs.execute(sql_query)
 
     ## Load your model, you can change path to your model
-    with open(os.path.join(CHECKPOINTS_DIR,"crop_presence_detector_RF.pkl"), 'rb') as file:     
+    with open(os.path.join(CHECKPOINTS_DIR,"crop_presence_detector_new.pkl"), 'rb') as file:     
         model = pickle.load(file)
 
     sql_query = f"""
@@ -62,8 +63,8 @@ if __name__=='__main__':
         rows = curs.fetchall()
     keys = [item[0] for item in rows]
 
-    for key in keys:
-        print(f"Processing farm_id: {key}/{keys[-1]}")
+    for key in tqdm(keys, desc="Processing farm_id"):
+        # print(f"Processing farm_id: {key}/{keys[-1]}")
         for month in ml_months:
             sql_query = f"""
             select

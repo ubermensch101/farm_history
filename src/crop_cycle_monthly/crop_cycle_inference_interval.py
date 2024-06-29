@@ -39,35 +39,55 @@ if __name__=='__main__':
     parser.add_argument('-y', '--year', type=int, help='Year', default=None)
     args = parser.parse_args()
 
-
+    if args.interval == "fortnightly":
+        interval_length = 24
+    elif args.interval == "monthly":
+        interval_length = 12
+    elif args.interval == "weekly":
+        interval_length = 48
+    else:
+        raise ValueError("Invalid interval type. Choose from fortnightly, monthly, weekly")
     config = Config()
     pgconn_obj = PGConn(config)
     pgconn=pgconn_obj.connection()
 
     table = config.setup_details["tables"]["villages"][0]
+    years = config.setup_details["months"]["agricultural_years"]
+    year = years[0]
 
-    if args.year is None:
-        args.year = config.setup_details["months"]["agricultural_months"][0][0]
+    for year in years:
+        column_name = f"crop_cycle_{args.interval}_{year}_{year+1}"
+        if not check_column_exists(pgconn_obj, table["schema"], table["table"], column_name):
+            sql_query = f"""
+            alter table
+                {table["schema"]}.{table["table"]}
+            add column
+                crop_cycle_{args.interval}_{year}_{year+1} text        
+            """
+            with pgconn.cursor() as curs:
+                curs.execute(sql_query)
 
-    if not check_column_exists(pgconn_obj, table["schema"], table["table"], f"crop_cycle_{args.interval}_{args.year}_{args.year+1}"):
-        sql_query = f"""
-        alter table
-            {table["schema"]}.{table["table"]}
-        add column
-            crop_cycle_{args.interval}_{args.year}_{args.year+1} text        
-        """
-        with pgconn.cursor() as curs:
-            curs.execute(sql_query)
-
+    ## Useful Vars
     months_data = ['01','02','03','04','05','06',
                    '07','08','09','10','11','12']
     months_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
                     'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+    
+    crop_cycle_map = {
+        0: "kharif_rabi",
+        1: "long_kharif",
+        2: "no_crop",
+        3: "perennial",
+        4: "short_kharif",
+        5: "weed",
+        6: "zaid"
+    }
+
+    print(f"Processing Farmplots for agricultural year: {year}")
+
     cycle_months = config.setup_details["months"]["agricultural_months"]
-    columns = ""
-    for i in range(len(cycle_months)):
-        # columns += f"{months_names[month[1]]}_{month[0]}_crop_presence,"
-        columns += f"crop_presence_{args.year}_monthly_{i+1},"
+    
+    
     
     ## Tensorflow model
     if MODEL_PATH.endswith((".keras", ".h5")):
@@ -81,15 +101,6 @@ if __name__=='__main__':
             # crop_cycle_map = {i: class_ for i,class_ in  enumerate(model.classes_)}
 
 
-    crop_cycle_map = {
-        0: "kharif_rabi",
-        1: "long_kharif",
-        2: "no_crop",
-        3: "perennial",
-        4: "short_kharif",
-        5: "weed",
-        6: "zaid"
-    }
 
     sql_query = f"""
     select
@@ -106,6 +117,12 @@ if __name__=='__main__':
         rows = curs.fetchall()
     keys = [item[0] for item in rows]
 
+    ## Crop presence columns
+    year = years[0]
+    columns = ""
+    for i in range(interval_length):
+        columns += f"crop_presence_{year}_{args.interval}_{i+1},"
+
     for key in tqdm(keys, desc="Processing farmplots"):
 
         sql_query = f"""
@@ -120,13 +137,17 @@ if __name__=='__main__':
         with pgconn.cursor() as curs:
             curs.execute(sql_query)
             row = curs.fetchall()[0]
-        
+
+        ## Crop presence vector of lenght : 12/24/48 (months/fortnights/weeks)
         crop_presence_vec = np.array([[float(item) for item in row[0:-1]],])
+        crop_presence_vec = crop_presence_vec.reshape(-1, interval_length//12).mean(axis=1).reshape(1, -1)
+
+        
         if "svc" in MODEL_PATH.lower():
             crop_cycle = crop_cycle_map[model.predict(crop_presence_vec)[0]]
             
         elif "keras" in MODEL_PATH.lower():
-            crop_presence_vec = np.array([[float(item) for item in row[0:-1]]])
+        
             crop_presence_vec = np.expand_dims(crop_presence_vec, axis=1)
             crop_cycle_bits = model.predict(crop_presence_vec)
             crop_cycle = crop_cycle_map[np.argmax(crop_cycle_bits)]
@@ -139,7 +160,7 @@ if __name__=='__main__':
         update
             {table["schema"]}.{table["table"]}
         set
-            crop_cycle_{args.interval}_{args.year}_{args.year+1} = '{crop_cycle}'
+            crop_cycle_{args.interval}_{year}_{year+1} = '{crop_cycle}'
         where
             {table["key"]} = {key}
         """
