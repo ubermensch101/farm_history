@@ -42,20 +42,20 @@ def calculate_average_color(tif_path):
 def compute_hue_features(tif_path):
     """
     # 3 bands corresponding to RGB and the 4th band is essentially
-    a bit mask (Since farmplots are not rectangles, some values will
-    be 0 i.e. unused)
+    a bit mask
+    (Since farmplots are not rectangles, some values will be 0 i.e. unused)
     """
     with rasterio.open(tif_path) as src:
         data = src.read()
         if data.shape[0] >= 4:
             rgb_bands = np.array(data)
             pixel_mask = rgb_bands[3]
-            pixel_mask = pixel_mask.astype(bool)
+            pixel_mask = ~pixel_mask.astype(bool)
             rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
             if len(hue[pixel_mask]) == 0:
-                return 0, 0
+                return -1,-1
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])
             return hue_mean, hue_stddev
@@ -74,6 +74,52 @@ def compute_hue_features(tif_path):
             return hue_mean, hue_stddev
         else:
             raise ValueError("Need 3 bands corresponding to rgb and a pixel mask\nOr at least 3 bands for rgb")
+
+
+def compute_hue_ir_features(tif_path):
+    """
+    # 4 bands corresponding to RGB + IR and the 5th band (if there) is essentially
+    a cloud bit mask
+    (Since farmplots are not rectangles, some values will be 0 i.e. unused)
+    """
+    with rasterio.open(tif_path) as src:
+        data = src.read()
+        if data.shape[0] >= 5:
+            bands = np.array(data)
+            ir_bands = bands[3]
+            pixel_mask = bands[4]
+            pixel_mask = ~pixel_mask.astype(bool)
+            rgb_image = np.stack([bands[0], bands[1], bands[2]], axis=-1)
+            hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+            hue = hsv_image[:,:,0]
+            if len(hue[pixel_mask]) == 0 or len(ir_bands[pixel_mask]) == 0:
+                return -1,-1
+            hue_mean = np.mean(hue[pixel_mask])
+            ir_mean = np.mean(ir_bands[pixel_mask])
+            # hue_stddev = np.std(hue[pixel_mask])
+            return hue_mean, ir_mean
+        if data.shape[0] == 4:
+            # Uses the green band as the pixel mask if no pixel mask available
+            rgb_bands = np.array(data)
+            pixel_mask = rgb_bands[1]
+            pixel_mask = pixel_mask.astype(bool)
+            rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
+            hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+            hue = hsv_image[:,:,0]
+            if len(hue[pixel_mask]) == 0:
+                return 0, 0
+            hue_mean = np.mean(hue[pixel_mask])
+            hue_stddev = np.std(hue[pixel_mask])
+            return hue_mean, hue_stddev
+        else:
+            raise ValueError("Need 3 bands corresponding to rgb and a pixel mask\nOr at least 3 bands for rgb")
+
+
+
+
+
+
+
 
 def highlight_farm(raster_path, polygon, output_path=None):
     with rasterio.open(raster_path) as dataset:
@@ -211,13 +257,11 @@ def crop_highlighted_farm(raster_path:str, polygon:list):
         else:
             raise ValueError("Polygon does not intersect with raster bounds.")
 
-
-"""
-Map the polygon cropped farm image to 
-a rectangular representation
-"""
-
 def remove_padding(raster_path:str, output_path: str):
+    """
+    Map the polygon cropped farm image to 
+    a rectangular representation
+    """
     image = plt.imread(raster_path)
     n_channels = image.shape[2]
     mask = np.any(image != 0, axis=-1)
@@ -264,4 +308,5 @@ def brighten_image(image):
     brightened_image= np.array(image_enhanced)
 
     return brightened_image
+
 

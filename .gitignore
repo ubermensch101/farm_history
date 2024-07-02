@@ -8,6 +8,9 @@ quads/
 fortnightly/
 weekly/
 monthly/
+monthly_cloud/
+weekly_cloud/
+fortnightly_cloud/
 
 ## Temporary Python scripts
 temp.py
