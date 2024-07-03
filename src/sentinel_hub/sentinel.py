@@ -1,5 +1,5 @@
 """
-Desciption:
+Description:
     Fetches satellite data from Sentinel Hub API for a given interval and year.
     
     Input:
@@ -9,8 +9,6 @@ Desciption:
     Output:
         - Satellite data in TIFF format for the given interval and year
 
-
-        
 Reference:
     https://sentinelhub-py.readthedocs.io/en/latest/sh.html
 """
@@ -20,7 +18,6 @@ import datetime
 import os
 import subprocess
 import json
-import matplotlib.pyplot as plt
 import shutil
 
 from sentinelhub import (
@@ -69,8 +66,8 @@ if __name__=='__main__':
 
     ## Sentinel API Configuration
     sh_config = SHConfig()
-    sh_config.sh_client_id = 'd5fd0f7c-3a77-4c94-9984-86f66cdaf1ac'
-    sh_config.sh_client_secret = 'IBSSLtzgdR8PPgHBsIvRNaL4FrMM0qbF' 
+    sh_config.sh_client_id = 'd5b78557-5a27-4cec-aca8-62324b44e2d9'
+    sh_config.sh_client_secret = 'GRFvMJms12Sp4yVbm5vONjK5o2KSNbFY'
 
     ## Arguments
     parser = argparse.ArgumentParser()
@@ -122,17 +119,17 @@ if __name__=='__main__':
         }
     """
 
-    evalscript_bright_color = """
+    evalscript_bright_color_with_infrared = """
         //VERSION=3
         function setup() {
             return {
-                input: ["B02", "B03", "B04", "CLM"],
-                output: { bands: 3 }
+                input: ["B02", "B03", "B04", "B08", "CLM","CLP"],
+                output: { bands: 6 }
             }
         }
 
         function evaluatePixel(sample) {
-            return [3.5*sample.B04, 3.5*sample.B03, 3.5*sample.B02];
+            return [3.5*sample.B04, 3.5*sample.B03, 3.5*sample.B02, sample.B08, sample.CLM, sample.CLP];
         }
     """
 
@@ -154,28 +151,30 @@ if __name__=='__main__':
             
             data_folder = os.path.join(ROOT_DIR, interval_type, table["table"], f"{year}", f"{interval[2]}")    
             if os.path.exists(data_folder):
-                print("Data already exists for this interval! Skipping...")
-            else:
-                request = SentinelHubRequest(
-                    data_folder=data_folder,
-                    evalscript=evalscript_bright_color,
-                    input_data=[
-                        SentinelHubRequest.input_data(
-                            data_collection=DataCollection.SENTINEL2_L2A,
-                            time_interval=(interval[0].strftime("%Y-%m-%d"),
-                                        interval[1].strftime("%Y-%m-%d")),
-                            mosaicking_order=MosaickingOrder.LEAST_CC
-                        )
-                    ],
-                    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
-                    geometry=full_geometry,
-                    config=sh_config,
-                )
-                request.get_data(save_data=True, show_progress=True)
-                # Removing weird hash directory
-                items = os.listdir(data_folder)
-                weird_dir = [item for item in items if os.path.isdir(os.path.join(data_folder, item))][0]
-                files_in_weird_dir = os.listdir(os.path.join(data_folder, weird_dir))
-                for file in files_in_weird_dir:
-                    shutil.move(os.path.join(data_folder, weird_dir, file), data_folder)
-                shutil.rmtree(os.path.join(data_folder, weird_dir), ignore_errors=True)
+                print(f"Data already exists for {interval_type[:-2]} {i+1}, removing existing folder...")
+                shutil.rmtree(data_folder)
+                
+            request = SentinelHubRequest(
+                data_folder=data_folder,
+                evalscript=evalscript_bright_color_with_infrared,
+                input_data=[
+                    SentinelHubRequest.input_data(
+                        data_collection=DataCollection.SENTINEL2_L2A,
+                        time_interval=(interval[0].strftime("%Y-%m-%d"),
+                                       interval[1].strftime("%Y-%m-%d")),
+                        mosaicking_order=MosaickingOrder.LEAST_CC
+                    )
+                ],
+                responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+                geometry=full_geometry,
+                config=sh_config,
+                size=(2500, 2500)  # Setting the size to an appropriate value
+            )
+            request.get_data(save_data=True, show_progress=True)
+            # Removing weird hash directory
+            items = os.listdir(data_folder)
+            weird_dir = [item for item in items if os.path.isdir(os.path.join(data_folder, item))][0]
+            files_in_weird_dir = os.listdir(os.path.join(data_folder, weird_dir))
+            for file in files_in_weird_dir:
+                shutil.move(os.path.join(data_folder, weird_dir, file), data_folder)
+            shutil.rmtree(os.path.join(data_folder, weird_dir), ignore_errors=True)
