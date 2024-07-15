@@ -26,6 +26,7 @@ warnings.filterwarnings("ignore")
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+CHECKPOINTS_DIR = os.path.join(CURRENT_DIR, "weights", "crop_presence_detector_LR.pkl")
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Compute crop presence for villages and add to database') 
@@ -63,7 +64,7 @@ if __name__=='__main__':
             with pgconn.cursor() as curs:
                 curs.execute(sql_query)
 
-    with open(f'{os.path.dirname(os.path.realpath(__file__))}/crop_presence_detector.pkl', 'rb') as file:
+    with open(CHECKPOINTS_DIR, 'rb') as file:
         model = pickle.load(file)
 
     sql_query = f"""
@@ -88,7 +89,9 @@ if __name__=='__main__':
             sql_query = f"""
             select
                 hue_mean_{args.year}_{args.interval}_{i+1},
-                hue_stddev_{args.year}_{args.interval}_{i+1}
+                hue_stddev_{args.year}_{args.interval}_{i+1},
+                ir_mean_{args.year}_{args.interval}_{i+1},
+                ir_stddev_{args.year}_{args.interval}_{i+1}
             from
                 {table["schema"]}.{table["table"]}
             where
@@ -101,10 +104,8 @@ if __name__=='__main__':
             if bands[0][0]==bands[0][1]==-1:
                 crop_presence = -1
             else:
-                print("Hey")
                 crop_presence = model.predict_proba(bands)[0][1]
             
-
             sql_query = f"""
             update
                 {table["schema"]}.{table["table"]}

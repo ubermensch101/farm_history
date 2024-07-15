@@ -49,7 +49,11 @@ if __name__=='__main__':
             alter table {table["schema"]}.{table["table"]}
             drop column if exists hue_mean_{year}_{args.interval}_{i+1};
             alter table {table["schema"]}.{table["table"]}
+            drop column if exists hue_stddev_{year}_{args.interval}_{i+1};
+            alter table {table["schema"]}.{table["table"]}
             drop column if exists ir_mean_{year}_{args.interval}_{i+1};
+            alter table {table["schema"]}.{table["table"]}
+            drop column if exists ir_stddev_{year}_{args.interval}_{i+1};
             """
             with pgconn.cursor() as curs:
                 curs.execute(sql_query)
@@ -59,7 +63,11 @@ if __name__=='__main__':
             alter table {table["schema"]}.{table["table"]}
             add column hue_mean_{year}_{args.interval}_{i+1} numeric;
             alter table {table["schema"]}.{table["table"]}
+            add column hue_stddev_{year}_{args.interval}_{i+1} numeric;
+            alter table {table["schema"]}.{table["table"]}
             add column ir_mean_{year}_{args.interval}_{i+1} numeric;
+            alter table {table["schema"]}.{table["table"]}
+            add column ir_stddev_{year}_{args.interval}_{i+1} numeric;
             """
             
             with pgconn.cursor() as curs:
@@ -81,30 +89,36 @@ if __name__=='__main__':
 
         print(f"Total # Farmplots : {len(poly_fetch_all)}")
 
-        QUADS_DIR = os.path.join(ROOT_DIR, f"{args.interval}_cloud", table['table'])
+        QUADS_DIR = os.path.join(ROOT_DIR, f"{args.interval}", table['table'])
         print("Quads dir:", QUADS_DIR)
 
         
         for i in range(interval_length):
+
             print(f"# {args.interval[:-2].upper()}", i+1)
+            cnt=0
             for poly in tqdm(poly_fetch_all, desc="Processing Farmplots"):
                 output_path = os.path.join(CURRENT_DIR, "temp_clipped.tif")
                 multipolygon = loads(poly[1])
                 super_clip_interval(QUADS_DIR, year, i+1, multipolygon, output_path)
                 tif_path = output_path
-                hue_mean, ir_mean = compute_hue_ir_features(tif_path)
-
+                hue_mean, hue_stddev, ir_mean, ir_stddev = compute_hue_ir_features(tif_path)
+                if hue_mean==hue_stddev==ir_mean==ir_stddev==-1:
+                    cnt+=1
+                    
                 sql_query = f"""
                 update
                     {table["schema"]}.{table["table"]}
                 set
                     hue_mean_{year}_{args.interval}_{i+1} = {hue_mean},
-                    ir_mean_{year}_{args.interval}_{i+1} = {ir_mean}
+                    hue_stddev_{year}_{args.interval}_{i+1} = {hue_stddev},
+                    ir_mean_{year}_{args.interval}_{i+1} = {ir_mean},
+                    ir_stddev_{year}_{args.interval}_{i+1} = {ir_stddev}
                 where
                     {table["key"]} = {poly[0]}
                 """
                 with pgconn.cursor() as curs:
                     curs.execute(sql_query)
-    
+            print(f"# Clouded Farmplots = {cnt}")
     
     pgconn.commit()

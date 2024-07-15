@@ -6,6 +6,7 @@ All the images for a farm plot are displayed together and the user is asked to i
 
 
 import os
+import h5py
 import subprocess
 import argparse
 import cv2
@@ -16,10 +17,11 @@ import pandas as pd
 from config.config import Config
 from utils.postgres_utils import *
 from utils.raster_utils import *
-
+from skimage import io
 ## FILE PATHS
 ROOT_DIR = os.path.abspath(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip())
-DATA_DIR = os.path.join(ROOT_DIR, "sentinel_annotation")
+DATA_DIR = os.path.join(ROOT_DIR, "data", "sentinel_annotation")
+CUURENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Create directory if doesn't exist
 if not os.path.exists(DATA_DIR):
@@ -91,6 +93,8 @@ if __name__=='__main__':
     QUADS_DIR = os.path.join(ROOT_DIR, args.interval, table['table'])
     print("Quads dir:", QUADS_DIR)
 
+    if not os.path.exists(os.path.join(CUURENT_DIR, "temp")):
+        os.makedirs(os.path.join(CUURENT_DIR, "temp"))
     for farm in poly_fetch_all:
         key = farm[0]
         images = []
@@ -98,15 +102,17 @@ if __name__=='__main__':
             output_path = f'{os.path.dirname(os.path.realpath(__file__))}/temp/{i+1}_clipped.tif'
             multipolygon = loads(farm[1])
             super_clip_interval(QUADS_DIR,year , i+1, multipolygon, output_path)
-            
-            images.append(np.array(Image.open(output_path)))
+            with rasterio.open(output_path) as src:
+                img =src.read()
+                images.append(np.transpose(img, (1,2,0)))
         i = 0
         while(i < interval_length):
             print(f"{args.interval[:-2]}:", i+1)
             fig, axes = plt.subplots(nrows=interval_length//4, ncols=4, figsize=(12,8))
             axes = axes.flatten()
             for j, (ax, image) in enumerate(zip(axes, images)):
-                ax.imshow(image)
+                rgb_image = image[:,:,:3]
+                ax.imshow(rgb_image)
                 if i == j:
                     ax.set_title(f'{args.interval[:-2]}: {j+1}', color='r')
                 ax.set_title(f'{args.interval[:-2]}: {j+1}')
@@ -117,9 +123,10 @@ if __name__=='__main__':
 
             answer = input()
             if answer in ["n", "y"]:
-                file_name = f"{key}_{i+1}.tif"
+                file_name = f"{key}_{i+1}.tiff"
                 output_path = os.path.join(DATA_DIR, answer, file_name)
-                tifffile.imwrite(output_path, images[i])
+                img_temp = np.transpose(images[i], (2, 0, 1 ))
+                save_multidimension_raster(img_temp, output_path)
                 print(f"Saving to {output_path}")
                 i += 1
             elif answer =="d":      ## In case of image containing clouds -> Drop it

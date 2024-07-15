@@ -8,6 +8,27 @@ from shapely.geometry import mapping, shape, box
 from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 
+def save_multidimension_raster(data, output_path):
+    """
+    Description:    This function saves a multidimensional raster to a file.
+
+    Args:
+                data: np.ndarray     - The multidimensional raster data, shape should be (bands, heigth, width)
+                output_path: str     - The path to save the raster to
+    """
+    metadata = {
+        'driver': 'GTiff',
+        'dtype': data.dtype,
+        'count': data.shape[0],
+        'width': data.shape[2],
+        'height': data.shape[1],
+        'crs': 'EPSG:4326',
+
+    }
+    with rasterio.open(output_path, 'w', **metadata) as dst:
+        dst.write(data)
+
+
 def clip_raster_with_multipolygon(raster_path, multipolygon, output_path):
     # Open the raster file
     with rasterio.open(raster_path) as src:
@@ -67,7 +88,7 @@ def compute_hue_features(tif_path):
             rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
-            if len(hue[pixel_mask]) == 0:
+            if np.all(hue[pixel_mask]) == 0:
                 return 0, 0
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])
@@ -92,13 +113,16 @@ def compute_hue_ir_features(tif_path):
             rgb_image = np.stack([bands[0], bands[1], bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
-            if len(hue[pixel_mask]) == 0 or len(ir_bands[pixel_mask]) == 0:
-                return -1,-1
+            non_zero_pixels = np.all(hue[pixel_mask]==0)
+            if non_zero_pixels:
+                return -1,-1, -1, -1
             hue_mean = np.mean(hue[pixel_mask])
+            hue_stddev = np.std(hue[pixel_mask])
             ir_mean = np.mean(ir_bands[pixel_mask])
-            # hue_stddev = np.std(hue[pixel_mask])
-            return hue_mean, ir_mean
-        if data.shape[0] == 4:
+            ir_stddev = np.std(ir_bands[pixel_mask])
+            return hue_mean,hue_stddev,ir_mean, ir_stddev
+        
+        if data.shape[0] == 3:
             # Uses the green band as the pixel mask if no pixel mask available
             rgb_bands = np.array(data)
             pixel_mask = rgb_bands[1]
@@ -106,7 +130,7 @@ def compute_hue_ir_features(tif_path):
             rgb_image = np.stack([rgb_bands[0], rgb_bands[1], rgb_bands[2]], axis=-1)
             hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
             hue = hsv_image[:,:,0]
-            if len(hue[pixel_mask]) == 0:
+            if np.all(hue[pixel_mask]) == 0:
                 return 0, 0
             hue_mean = np.mean(hue[pixel_mask])
             hue_stddev = np.std(hue[pixel_mask])

@@ -3,9 +3,10 @@ pandas
 psycopg2-binary
 requests
 rasterio
-opencv-contrib-python
 openpyxl
+seaborn
 scikit-learn
+scikit-image
 geopandas
 matplotlib
 tensorflow
@@ -14,3 +15,5 @@ torchvision
 torch-summary
 planet
 sentinelhub
+opencv-python
+tiffile
